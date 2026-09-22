@@ -150,24 +150,60 @@ function renderComputerFrame() {
   const cw = measureCharWidth();
   const SH = COMPUTER.sh;
   const SW = Math.max(24, Math.round((SH * lh) / cw)); // 视觉正方形屏幕
+  const D = 4; // 右侧纵深
 
-  const rows = [
-    '   ╭' + '─'.repeat(SW) + '╮',
-    '  ╱' + '┌' + '─'.repeat(SW) + '┐' + '╲',
+  const rows = [];
+
+  // 前面板顶边
+  rows.push('+' + '-'.repeat(SW + 6) + '+');
+  // 前面板第一行 + 顶面右斜
+  rows.push('|' + ' '.repeat(SW + 6) + '|' + '\\');
+  // 屏幕顶边
+  rows.push('|  +' + '-'.repeat(SW) + '+  |' + ' \\');
+  // 屏幕内容行（前两行右侧继续斜，之后转竖直）
+  for (let i = 0; i < SH; i++) {
+    const right = i < D - 2
+      ? ' '.repeat(i + 2) + '\\'
+      : ' '.repeat(D) + '|';
+    rows.push('|  |' + ' '.repeat(SW) + '|  |' + right);
+  }
+  // 屏幕底边
+  rows.push('|  +' + '-'.repeat(SW) + '+  |' + ' '.repeat(D) + '|');
+  // 前面板空行
+  rows.push('|' + ' '.repeat(SW + 6) + '|' + ' '.repeat(D) + '|');
+  // FD / POWER
+  rows.push('|' + '  [FD]' + ' '.repeat(SW - 9) + '[POWER]  |' + ' '.repeat(D) + '|');
+  // 前面板底边
+  rows.push('+' + '-'.repeat(SW + 6) + '+' + ' '.repeat(D) + '|');
+  // 机身
+  rows.push('|' + ' '.repeat(SW + 6) + '|' + ' '.repeat(D) + '|');
+  // 机身底 + 右面底
+  rows.push('+' + '-'.repeat(SW + 6) + '+' + '-'.repeat(D) + '+');
+
+  // 底座立柱
+  const standCol = Math.round((SW + 7) / 2);
+  rows.push(' '.repeat(standCol) + '|');
+  rows.push(' '.repeat(standCol) + '|');
+
+  // 键盘（缩短）
+  const KW = Math.max(16, SW - 8);
+  const key = '[]'.repeat(Math.floor(KW / 2));
+  const kb = [
+    '+' + '-'.repeat(KW) + '+',
+    '/' + ' ' + key + ' \\',
+    '/' + '  ' + key + '  \\',
+    '+' + '-'.repeat(KW + 4) + '+',
+    '|' + ' '.repeat(KW + 4) + '|',
+    '+' + '-'.repeat(KW + 4) + '+',
   ];
-  for (let i = 0; i < SH; i++) rows.push('   │' + ' '.repeat(SW) + '│');
-  rows.push('  ╲' + '└' + '─'.repeat(SW) + '┘' + '╱');
-  rows.push('   ╰' + '─'.repeat(SW) + '╯');
-  const body = ' ░░░░    ●    ░░░░ ';
-  const pad = Math.floor((SW - body.length) / 2);
-  rows.push('   ┌' + '─'.repeat(SW) + '┐');
-  rows.push('   │' + ' '.repeat(pad) + body + ' '.repeat(SW - pad - body.length) + '│');
-  rows.push('   └' + '─'.repeat(SW) + '┘');
+  const kbW = Math.max(...kb.map((l) => l.length));
+  const kbIndent = Math.max(0, Math.floor((SW + 8 - kbW) / 2));
+  kb.forEach((l) => rows.push(' '.repeat(kbIndent) + l));
 
   frameEl.textContent = rows.join('\n');
 
   screenEl.style.left = (4 * cw) + 'px';
-  screenEl.style.top = (2 * lh) + 'px';
+  screenEl.style.top = (3 * lh) + 'px';
   screenEl.style.width = (SW * cw) + 'px';
   screenEl.style.height = (SH * lh) + 'px';
 }
