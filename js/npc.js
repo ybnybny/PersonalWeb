@@ -68,7 +68,7 @@ export class Npc {
     this.musicLog = [];
     this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    this.catEl = el('div', { class: 'npc-cat', onclick: () => this.onClick() });
+    this.catEl = el('div', { class: 'npc-cat', onclick: (ev) => { ev.stopPropagation(); this.onClick(); } });
     this.asciiEl = el('pre', { class: 'cat-ascii' });
     this.catEl.appendChild(this.asciiEl);
     container.appendChild(this.catEl);
@@ -79,6 +79,9 @@ export class Npc {
     this.dialogPanel.appendChild(this.dialogText);
     this.dialogPanel.appendChild(this.dialogOptions);
     document.body.appendChild(this.dialogPanel);
+
+    // 点击屏幕任意位置关闭对话（不再自动消失）
+    document.addEventListener('click', (e) => this.onDocumentClick(e));
 
     window.addEventListener('message', (e) => this.onMessage(e));
   }
@@ -291,11 +294,27 @@ export class Npc {
     }
 
     await this.say(reply);
-    await wait(1400);
+    // 不再自动消失：等待用户点击屏幕任意位置关闭
+  }
+
+  // 点击对话框外部任意位置关闭对话
+  onDocumentClick(e) {
+    if (this.dialogPanel.classList.contains('hidden')) return;
+    if (this.dialogPanel.contains(e.target)) return;
     this.endChat();
   }
 
   endChat() {
+    if (this.typeTimer) {
+      clearInterval(this.typeTimer);
+      this.typeTimer = null;
+      if (this.resolveType) { const r = this.resolveType; this.resolveType = null; r(); }
+    }
+    if (this.resolveAsk) {
+      const r = this.resolveAsk;
+      this.resolveAsk = null;
+      r(null);
+    }
     this.dialogPanel.classList.add('hidden');
     this.dialogOptions.innerHTML = '';
     this.setState('idle');
@@ -336,7 +355,8 @@ export class Npc {
     return new Promise((resolve) => {
       this.resolveAsk = resolve;
       options.forEach((opt) => {
-        const btn = el('button', { onclick: () => {
+        const btn = el('button', { onclick: (ev) => {
+          ev.stopPropagation();
           this.dialogOptions.innerHTML = '';
           this.resolveAsk = null;
           resolve(opt);
