@@ -21,10 +21,10 @@ function renderArt() {
 }
 
 // 测量等宽字体字符宽度（用于绘制与房间尺寸严格对齐的墙）
-function measureCharWidth() {
+function measureCharWidth(ch = '─') {
   const probe = document.createElement('span');
   probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font-family:inherit;font-size:inherit;letter-spacing:0;';
-  probe.textContent = '─'.repeat(100);
+  probe.textContent = ch.repeat(100);
   document.body.appendChild(probe);
   const w = probe.getBoundingClientRect().width / 100;
   probe.remove();
@@ -147,7 +147,7 @@ function renderComputerFrame() {
   const frameEl = $('computer-frame');
   const screenEl = $('computer-screen');
   const lh = parseFloat(getComputedStyle(frameEl).lineHeight) || 15; // line-height:1
-  const cw = measureCharWidth();
+  const cw = measureCharWidth('0'); // 外壳用 ASCII 字符（+-|\/），按 ASCII 宽度测量
   const SH = COMPUTER.sh;
   const SW = Math.max(24, Math.round((SH * lh) / cw)); // 视觉正方形屏幕
   const D = 4; // 右侧纵深
