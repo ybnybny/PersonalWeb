@@ -202,15 +202,14 @@ function renderComputerFrame() {
 
   frameEl.textContent = rows.join('\n');
 
-  // 用整数像素 + 内缩，确保屏幕不超出字符画边框
+  // 屏幕 div 宽度不变（外壳已加宽 5 字符，div 仍为加宽前的宽度）
   const leftPx = Math.round(4 * cw);
   const topPx = Math.round(3 * lh);
-  const rightPx = Math.floor((SW + 4) * cw);
-  const bottomPx = Math.floor((SH + 3) * lh);
+  const divW = SW - 5; // div 的字符宽度（未加宽）
   screenEl.style.left = leftPx + 'px';
   screenEl.style.top = topPx + 'px';
-  screenEl.style.width = Math.max(1, rightPx - leftPx) + 'px';
-  screenEl.style.height = Math.max(1, bottomPx - topPx) + 'px';
+  screenEl.style.width = Math.max(1, Math.floor(divW * cw)) + 'px';
+  screenEl.style.height = Math.max(1, Math.floor(SH * lh)) + 'px';
 }
 
 function crtItem(text, action) {
