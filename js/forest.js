@@ -40,6 +40,21 @@ $('back-door').addEventListener('click', () => {
   window.parent.postMessage({ type: 'navigate', room: 'home' }, location.origin);
 });
 
+// 节点详情弹窗关闭
+function closeNodePanel() {
+  $('node-panel').classList.add('hidden');
+}
+
+document.querySelectorAll('[data-close]').forEach((b) => {
+  b.addEventListener('click', () => closeNodePanel());
+});
+const nodePanel = $('node-panel');
+if (nodePanel) {
+  nodePanel.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeNodePanel(); // 点遮罩空白处关闭
+  });
+}
+
 let cy = null;
 let tagColorMap = {};
 let libraryMap = {};
@@ -70,7 +85,7 @@ function showNode(node) {
     }
   }
 
-  $('forest-side').classList.add('show');
+  $('node-panel').classList.remove('hidden');
 }
 
 function openLibraryItem(itemId) {
@@ -97,21 +112,31 @@ async function loadForest() {
     const nodes = nodesRes.data || [];
     const edges = edgesRes.data || [];
 
+    // 初始位置：pinned 用目标坐标，其余随机散布，避免布局完成前节点堆在原点
+    const W = $('forest-cy').clientWidth || 800;
+    const H = $('forest-cy').clientHeight || 600;
+
     const elements = [
-      ...nodes.map((n) => ({
-        group: 'nodes',
-        data: {
-          id: n.id,
-          label: n.label,
-          desc: n.desc,
-          tags: n.tags || [],
-          library_item_id: n.library_item_id || null,
-          size: n.size || 30,
-          pinned: n.pinned,
-          x: n.x,
-          y: n.y,
-        },
-      })),
+      ...nodes.map((n) => {
+        const position = n.pinned
+          ? { x: (n.x - 0.5) * W, y: (n.y - 0.5) * H }
+          : { x: (Math.random() * 2 - 1) * W * 0.35, y: (Math.random() * 2 - 1) * H * 0.35 };
+        return {
+          group: 'nodes',
+          position,
+          data: {
+            id: n.id,
+            label: n.label,
+            desc: n.desc,
+            tags: n.tags || [],
+            library_item_id: n.library_item_id || null,
+            size: n.size || 30,
+            pinned: n.pinned,
+            x: n.x,
+            y: n.y,
+          },
+        };
+      }),
       ...edges.map((e) => ({
         group: 'edges',
         data: { id: e.id, source: e.source, target: e.target },
@@ -161,8 +186,6 @@ async function loadForest() {
 
     cy.nodes().ungrabify();
 
-    const W = $('forest-cy').clientWidth || 800;
-    const H = $('forest-cy').clientHeight || 600;
     const constraints = nodes
       .filter((n) => n.pinned)
       .map((n) => ({ nodeId: n.id, position: { x: (n.x - 0.5) * W, y: (n.y - 0.5) * H } }));
@@ -198,7 +221,7 @@ async function loadForest() {
 
     cy.on('tap', 'node', (evt) => showNode(evt.target));
     cy.on('tap', (evt) => {
-      if (evt.target === cy) $('forest-side').classList.remove('show');
+      if (evt.target === cy) closeNodePanel();
     });
   } catch {
     toastLoadError(loadForest);

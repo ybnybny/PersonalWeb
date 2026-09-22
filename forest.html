@@ -23,12 +23,17 @@
 
     <div class="forest-wrap">
       <div id="forest-cy"></div>
-      <aside class="forest-side" id="forest-side">
-        <div id="node-label" style="font-weight:bold;margin-bottom:6px;"></div>
+    </div>
+
+    <!-- 节点详情弹窗 -->
+    <div class="panel-overlay hidden" id="node-panel">
+      <div class="panel">
+        <button class="panel-close" data-close="node-panel">×</button>
+        <h2 id="node-label"></h2>
         <div id="node-tags" style="margin-bottom:8px;"></div>
-        <div id="node-desc" style="color:var(--muted);"></div>
+        <div id="node-desc" class="markdown-body"></div>
         <div id="node-link" style="margin-top:12px;"></div>
-      </aside>
+      </div>
     </div>
   </div>
 

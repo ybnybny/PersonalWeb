@@ -690,7 +690,7 @@ create trigger trg_library_updated_at
 
 ### 10.2 `forest.html` + `forest.js`（森林，内容页）
 - 读取 `knowledge_nodes` + `knowledge_edges`，用 Cytoscape 渲染**朴素平面图**（无光效）；布局采用 `cytoscape-fcose`，用 `fixedNodeConstraint` 将 `pinned=true` 的节点固定在其 `x/y` 坐标（0–1 归一化）、不参与自动排布，`pinned=false`（默认）的节点由自动布局决定位置；`size` 作为节点直径（px，默认 30）渲染。**坐标换算基准**：`fixedNodeConstraint` 使用模型坐标，约定以初始未缩放画布宽高为基准，pinned 节点 position =（x×画布宽, y×画布高）；后台拖拽松手时用节点模型坐标除以画布宽高换算回 0–1 写库。**坐标校准注意**：fcose 以画布中心为原点，与 0–1 左上角原点存在偏移，实施时须实测校准；若偏差明显，改为「先对非固定节点跑自动布局，再对 `pinned` 节点用 `node.position()` 直接设定位置」。连线（边）的 `label` 不显示，仅存数据库备用。
-- 交互：拖拽画布（pan）、滚轮缩放（zoom）、点击节点在侧栏展开简介 `desc`（Markdown，经 `marked`+DOMPurify 渲染）、彩色标签（`tags`，颜色随 `knowledge_tags`）与关联文章（`library_item_id`，可点「前往图书馆查看」）；**节点颜色 = 第一个标签的颜色**（无标签用主题强调色）；**公开页禁用节点拖动**，只有后台可拖节点写坐标。
+- 交互：拖拽画布（pan）、滚轮缩放（zoom）、点击节点在**弹窗**中展开简介 `desc`（Markdown，经 `marked`+DOMPurify 渲染）、彩色标签（`tags`，颜色随 `knowledge_tags`）与关联文章（`library_item_id`，可点「前往图书馆查看」）；**节点颜色 = 第一个标签的颜色**（无标签用主题强调色）；**公开页禁用节点拖动**，只有后台可拖节点写坐标。
 - **fcose 注册与依赖**：`cytoscape-fcose` 的 UMD 构建只暴露 `window.cytoscapeFcose`、不会自动注册，需在脚本中执行 `window.cytoscape.use(window.cytoscapeFcose)`；且 fcose 依赖 `cose-base`、`cose-base` 依赖 `layout-base`，需在页面中按「layout-base → cose-base → cytoscape-fcose」顺序先引入（见 §2）。
 - **门·主房间**：与主房间的门一致——悬停（hover）到门旁显示「开门」，点击经 `postMessage` 通知外壳切回主房间。
 - 挂载 `npc.js` 猫组件（体现"恒在"，见 §5）；监听外壳广播的灯/音乐事件（§5.6）。
@@ -763,7 +763,7 @@ create trigger trg_library_updated_at
 - [ ] 音乐：播放/切歌正常，切房**自动续播零中断**（外壳常驻）；状态默认播放、刷新后从 `currentTime` 续播，但受浏览器自动播放限制，首次点击后才出声；唱片机收到广播仅同步显示、不回发（无消息回路）；**自动续播/自动切歌不惊扰猫**。
 - [ ] 控制台：航行日志（空间编号/状态/属空间/正文）与通讯坐标正常展示。
 - [ ] 留言板：已发布问答分页展示（每页 20 条，**不显示提问/回答日期**）；经 `submit_question()` 投递成功且状态 `pending`；蜜罐字段、前端频控与服务端限流生效；访客内容渲染已转义（无 XSS）。
-- [ ] 森林：朴素平面图，画布平移/缩放/点击展开正常、**公开页节点不可拖动**；`pinned` 节点锁定在手动坐标（0–1 归一化，fcose `fixedNodeConstraint`）；节点颜色随标签颜色、侧栏显示简介/标签/关联文章并可跳转图书馆；猫组件在场、简介词固定且颜色随主题。
+- [ ] 森林：朴素平面图，画布平移/缩放/点击展开正常、**公开页节点不可拖动**；`pinned` 节点锁定在手动坐标（0–1 归一化，fcose `fixedNodeConstraint`）；节点颜色随标签颜色、点击节点在弹窗显示简介/标签/关联文章并可跳转图书馆；猫组件在场、简介词固定且颜色随主题。
 - [ ] 图书馆：`updated_at` 倒序、分页（每页 20 条）、标签检索、Markdown 渲染（含插图与代码块，经 DOMPurify 净化）、摘要展示（`summary`）正常；详情显示相关节点并可跳转森林；猫组件在场、简介词固定且颜色随主题。
 - [ ] 后台：五个 tab 全流程可用，白底黑字不随灯光；**插图上传到 Storage `images` 成功、公开页正常显示**。
 - [ ] 留言板分「查看留言 / 投递便签」两个页签，投递成功后回到查看页并刷新。
