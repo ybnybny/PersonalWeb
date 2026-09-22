@@ -149,7 +149,7 @@ function renderComputerFrame() {
   const lh = parseFloat(getComputedStyle(frameEl).lineHeight) || 15; // line-height:1
   const cw = measureCharWidth('0'); // 外壳用 ASCII 字符（+-|\/），按 ASCII 宽度测量
   const SH = COMPUTER.sh;
-  const SW = Math.max(24, Math.round((SH * lh) / cw)); // 视觉正方形屏幕
+  const SW = Math.max(24, Math.round((SH * lh) / cw)) + 5; // 屏幕加宽 5 字符
   const D = 4; // 右侧纵深
 
   const rows = [];
