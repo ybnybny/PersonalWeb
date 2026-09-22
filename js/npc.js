@@ -139,11 +139,55 @@ export class Npc {
     this.moveTo(target, () => this.startIdle());
   }
 
+  // 家具占用区域（相对房间的百分比矩形，含墙内边距）
+  computeForbidden() {
+    const roomRect = this.container.getBoundingClientRect();
+    if (!roomRect.width || !roomRect.height) return [];
+    const rects = [];
+    this.container.querySelectorAll('.object').forEach((o) => {
+      const r = o.getBoundingClientRect();
+      rects.push({
+        x0: ((r.left - roomRect.left) / roomRect.width) * 100,
+        y0: ((r.top - roomRect.top) / roomRect.height) * 100,
+        x1: ((r.right - roomRect.left) / roomRect.width) * 100,
+        y1: ((r.bottom - roomRect.top) / roomRect.height) * 100,
+      });
+    });
+    return rects;
+  }
+
+  // 猫占位：横向 [x-hw, x+hw]，纵向 [y-hh, y]（锚点为底部中心）
+  hitsForbidden(x, y, rects) {
+    const hw = 7, hh = 10, pad = 3;
+    return rects.some((r) =>
+      x + hw > r.x0 - pad && x - hw < r.x1 + pad &&
+      y > r.y0 - pad && y - hh < r.y1 + pad
+    );
+  }
+
+  // 判断从 (x1,y1) 到 (x2,y2) 的直线路径是否穿过家具（采样点检测）
+  segmentHits(x1, y1, x2, y2, rects) {
+    const n = 20;
+    for (let i = 0; i <= n; i++) {
+      const x = x1 + (x2 - x1) * (i / n);
+      const y = y1 + (y2 - y1) * (i / n);
+      if (this.hitsForbidden(x, y, rects)) return true;
+    }
+    return false;
+  }
+
   randomTarget() {
-    return {
-      x: 8 + Math.random() * 84,
-      y: 15 + Math.random() * 70,
-    };
+    const rects = this.computeForbidden();
+    const x0 = 8, x1 = 92, y0 = 18, y1 = 82; // 墙内可活动范围（%）
+    for (let i = 0; i < 60; i++) {
+      const x = x0 + Math.random() * (x1 - x0);
+      const y = y0 + Math.random() * (y1 - y0);
+      if (!this.hitsForbidden(x, y, rects) &&
+          !this.segmentHits(this.pos.x, this.pos.y, x, y, rects)) {
+        return { x, y };
+      }
+    }
+    return { x: 50, y: 70 }; // 兜底：偏中央下方安全点
   }
 
   moveTo(target, done) {

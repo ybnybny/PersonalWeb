@@ -253,9 +253,9 @@ async function renderForest(content) {
   adminLinks = linksRes.data || [];
 
   const colorOf = (tags) => {
-    if (!tags || !tags.length) return '#005f5f';
+    if (!tags || !tags.length) return '#1a5fb4';
     const t = adminTags.find((x) => x.name === tags[0]);
-    return t ? t.color : '#005f5f';
+    return t ? t.color : '#1a5fb4';
   };
 
   forestCy = window.cytoscape({
@@ -420,7 +420,7 @@ function forestTagManage(content) {
   });
 
   const newName = el('input', { placeholder: '新标签名', style: 'width:140px' });
-  const newColor = el('input', { type: 'color', value: '#005f5f', style: 'width:52px;padding:0;border:none' });
+  const newColor = el('input', { type: 'color', value: '#1a5fb4', style: 'width:52px;padding:0;border:none' });
   const addBtn = el('button', {
     onclick: async () => {
       const name = newName.value.trim();

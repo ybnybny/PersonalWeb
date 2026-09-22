@@ -117,7 +117,7 @@ export function mountSnake(container) {
     ctx.fillStyle = '#e07b39';
     ctx.fillRect(food.x * CELL + 1, food.y * CELL + 1, CELL - 2, CELL - 2);
 
-    const headColor = cssVar('--accent') || '#005f5f';
+    const headColor = cssVar('--accent') || '#1a5fb4';
     const bodyColor = cssVar('--fg') || '#1a1a1a';
     snake.forEach((s, i) => {
       ctx.fillStyle = i === 0 ? headColor : bodyColor;

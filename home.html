@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>主房间 · 赛博串门</title>
+  <title>主房间 · 某 ？的小屋</title>
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
@@ -39,6 +39,12 @@
         <div class="object-tooltip">通往图书馆</div>
       </div>
 
+      <!-- 时钟（储物柜正上方，显示访客本地时间） -->
+      <div class="object" id="clock" style="left:auto; right:1ch; top:calc(38% - 74px);">
+        <pre class="ascii-art" id="clock-art"></pre>
+        <div class="object-label">时钟</div>
+      </div>
+
       <!-- 储物柜（竖着紧贴右墙） -->
       <div class="object" id="cabinet" style="left:auto; right:1ch; top:38%;">
         <pre class="ascii-art" data-art="cabinet"></pre>
@@ -60,7 +66,7 @@
       </div>
 
       <!-- 窝（中左，加大） -->
-      <div class="object" id="nest" style="left:22%; top:52%;">
+      <div class="object" id="nest" style="left:19%; top:47%;">
         <pre class="ascii-art" data-art="nest"></pre>
         <div class="object-label">窝</div>
       </div>

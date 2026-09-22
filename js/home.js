@@ -67,6 +67,16 @@ function renderWalls() {
   pre.textContent = lines.join('\n');
 }
 
+// 时钟：显示访客本地时间
+function renderClock() {
+  const art = $('clock-art');
+  if (!art) return;
+  const d = new Date();
+  const t = [d.getHours(), d.getMinutes(), d.getSeconds()]
+    .map((n) => String(n).padStart(2, '0')).join(':');
+  art.textContent = ['┌─────────┐', `│ ${t}│`, '└─────────┘'].join('\n');
+}
+
 // ---------- 开关灯 ----------
 
 function applyLight(value) {
@@ -308,6 +318,8 @@ applyLight(getLight());
 updateRecordPlayer();
 renderWalls();
 renderArt();
+renderClock();
+setInterval(renderClock, 1000);
 
 const npc = new Npc($('room'));
 npc.startIdle();

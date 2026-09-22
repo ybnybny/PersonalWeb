@@ -117,7 +117,7 @@ function loadTrack() {
 function renderMusic() {
   musicTrack.textContent = `曲目 ${(bgm.trackIndex % TRACKS.length) + 1}/${TRACKS.length}`;
   const playing = !audio.paused && !audio.ended;
-  musicToggle.textContent = playing ? '⏸ 暂停' : '▶ 播放';
+  musicToggle.textContent = playing ? '暂停' : '播放';
 }
 
 function handleMusicCommand(action, startle) {

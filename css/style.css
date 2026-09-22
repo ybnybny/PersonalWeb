@@ -7,8 +7,8 @@
 :root {
   --bg: #ffffff;
   --fg: #1a1a1a;
-  --accent: #005f5f;
-  --accent-soft: #e0f2f2;
+  --accent: #1a5fb4;
+  --accent-soft: #e8f1fb;
   --border: #d5d0c8;
   --panel: #ffffff;
   --muted: #6b6660;
@@ -18,8 +18,8 @@
 [data-light="off"] {
   --bg: #000000;
   --fg: #e6e6e6;
-  --accent: #00ffcc;
-  --accent-soft: #0a2a26;
+  --accent: #4da6ff;
+  --accent-soft: #0d2137;
   --border: #2a2a3a;
   --panel: #000000;
   --muted: #8a8a95;
@@ -455,7 +455,7 @@ pre.ascii {
 }
 .admin-body h1 { font-size: 18px; }
 .admin-body .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0; }
-.admin-body .tab-btn.active { color: #005f5f; border-color: #005f5f; background: #e0f2f2; }
+.admin-body .tab-btn.active { color: #1a5fb4; border-color: #1a5fb4; background: #e8f1fb; }
 .admin-body .admin-section { max-width: 980px; }
 
 .admin-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
