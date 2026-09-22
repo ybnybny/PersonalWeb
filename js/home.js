@@ -20,6 +20,53 @@ function renderArt() {
   });
 }
 
+// 测量等宽字体字符宽度（用于绘制与房间尺寸严格对齐的墙）
+function measureCharWidth() {
+  const probe = document.createElement('span');
+  probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font-family:inherit;font-size:inherit;letter-spacing:0;';
+  probe.textContent = '──────────';
+  document.body.appendChild(probe);
+  const w = probe.getBoundingClientRect().width / 10;
+  probe.remove();
+  return w;
+}
+
+// 用字符画绘制主房间四周的墙（底部中央留出入口 ENTRY 的缺口）
+function renderWalls() {
+  const room = $('room');
+  const pre = $('room-walls');
+  if (!room || !pre) return;
+  const W = room.clientWidth;
+  const H = room.clientHeight;
+  if (W <= 0 || H <= 0) return;
+
+  const cw = measureCharWidth();
+  const fs = parseFloat(getComputedStyle(pre).fontSize) || 15;
+  let cols = Math.max(3, Math.floor(W / cw));
+  let rows = Math.max(3, Math.floor(H / (fs * 1.2)));
+
+  // 微调字间距，使水平方向恰好铺满房间宽度
+  let ls = (W - cols * cw) / Math.max(1, cols - 1);
+  if (ls < -0.5) { cols -= 1; ls = (W - cols * cw) / Math.max(1, cols - 1); }
+  pre.style.letterSpacing = Math.max(0, ls) + 'px';
+  pre.style.lineHeight = (H / rows) + 'px';
+
+  const gap = 16; // 底部中央缺口宽度（字符数）
+  const g0 = Math.floor((cols - gap) / 2);
+  const g1 = g0 + gap;
+
+  const lines = ['┌' + '─'.repeat(cols - 2) + '┐'];
+  for (let r = 1; r < rows - 1; r++) {
+    lines.push('│' + ' '.repeat(cols - 2) + '│');
+  }
+  let bottom = '└';
+  for (let c = 1; c < cols - 1; c++) bottom += (c >= g0 && c < g1) ? ' ' : '─';
+  bottom += '┘';
+  lines.push(bottom);
+
+  pre.textContent = lines.join('\n');
+}
+
 // ---------- 开关灯 ----------
 
 function applyLight(value) {
@@ -259,6 +306,7 @@ async function onSubmit() {
 
 applyLight(getLight());
 updateRecordPlayer();
+renderWalls();
 renderArt();
 
 const npc = new Npc($('room'));
