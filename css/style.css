@@ -542,6 +542,13 @@ pre.ascii {
    电脑（老式大头一体机）
    ===================================================================== */
 
+.computer-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 18px 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
 .computer {
   position: relative;
   font-family: 'Cascadia Mono', Consolas, 'Courier New', monospace;
@@ -559,10 +566,6 @@ pre.ascii {
 
 .computer-screen {
   position: absolute;
-  left: 1ch;
-  top: 1em;
-  width: 46ch;
-  height: 24em;
   overflow: auto;
   background: #060a0f;
   color: #8fd0ff;

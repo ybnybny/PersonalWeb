@@ -134,7 +134,7 @@ $('message-board').addEventListener('click', () => { openPanel('board-panel'); s
 
 // ---------- 电脑（老式大头一体机） ----------
 
-const COMPUTER = { sw: 46, sh: 24 };
+const COMPUTER = { sh: 24 };
 
 let snakeStop = null;
 let computerMode = null; // 'menu' | 'about' | 'snake' | null
@@ -144,14 +144,32 @@ function stopSnake() {
 }
 
 function renderComputerFrame() {
-  const L = (a, b, c) => a + b.repeat(COMPUTER.sw) + c;
-  const rows = [L('╭', '─', '╮')];
-  for (let i = 0; i < COMPUTER.sh; i++) rows.push(L('│', ' ', '│'));
-  rows.push(L('╰', '─', '╯'));
-  rows.push(L('┌', '─', '┐'));
-  rows.push('│' + '  ░░░░      ●       ░░░░      '.padEnd(COMPUTER.sw) + '│');
-  rows.push(L('└', '─', '┘'));
-  $('computer-frame').textContent = rows.join('\n');
+  const frameEl = $('computer-frame');
+  const screenEl = $('computer-screen');
+  const lh = parseFloat(getComputedStyle(frameEl).lineHeight) || 15; // line-height:1
+  const cw = measureCharWidth();
+  const SH = COMPUTER.sh;
+  const SW = Math.max(24, Math.round((SH * lh) / cw)); // 视觉正方形屏幕
+
+  const rows = [
+    '   ╭' + '─'.repeat(SW) + '╮',
+    '  ╱' + '┌' + '─'.repeat(SW) + '┐' + '╲',
+  ];
+  for (let i = 0; i < SH; i++) rows.push('   │' + ' '.repeat(SW) + '│');
+  rows.push('  ╲' + '└' + '─'.repeat(SW) + '┘' + '╱');
+  rows.push('   ╰' + '─'.repeat(SW) + '╯');
+  const body = ' ░░░░    ●    ░░░░ ';
+  const pad = Math.floor((SW - body.length) / 2);
+  rows.push('   ┌' + '─'.repeat(SW) + '┐');
+  rows.push('   │' + ' '.repeat(pad) + body + ' '.repeat(SW - pad - body.length) + '│');
+  rows.push('   └' + '─'.repeat(SW) + '┘');
+
+  frameEl.textContent = rows.join('\n');
+
+  screenEl.style.left = (4 * cw) + 'px';
+  screenEl.style.top = (2 * lh) + 'px';
+  screenEl.style.width = (SW * cw) + 'px';
+  screenEl.style.height = (SH * lh) + 'px';
 }
 
 function crtItem(text, action) {
@@ -202,9 +220,9 @@ function launchSnake() {
 }
 
 function openComputer() {
-  openPanel('computer-panel');
   renderComputerFrame();
   renderComputerMenu();
+  openPanel('computer-panel');
 }
 
 function closeComputer() {
