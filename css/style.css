@@ -311,6 +311,10 @@ pre.ascii {
   margin-top: 0;
   margin-bottom: 2px;
 }
+/* 时钟：文字与时钟本体轻微交错（约2px） */
+#clock .object-label {
+  margin-bottom: -2px;
+}
 
 .object-tooltip {
   position: absolute;
