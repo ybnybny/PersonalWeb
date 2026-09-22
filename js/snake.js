@@ -19,7 +19,7 @@ export function mountSnake(container) {
   container.innerHTML = '';
 
   const GRID = 20;
-  const CELL = 20;
+  const CELL = 14;
   const canvas = document.createElement('canvas');
   canvas.width = GRID * CELL;
   canvas.height = GRID * CELL;
@@ -38,7 +38,7 @@ export function mountSnake(container) {
   const saveBtn = el('button', { onclick: onSaveName }, '保存成绩');
   nameForm.append(nameInput, saveBtn);
 
-  container.append(canvas, hud, hint, nameForm, boardTitle, board);
+  container.append(hud, canvas, hint, nameForm, boardTitle, board);
 
   const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
@@ -102,11 +102,11 @@ export function mountSnake(container) {
   }
 
   function draw() {
-    ctx.fillStyle = cssVar('--bg') || '#fff';
+    ctx.fillStyle = '#060a0f';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (state === 'idle') {
-      ctx.fillStyle = cssVar('--muted') || '#888';
+      ctx.fillStyle = '#5a8ab8';
       ctx.font = '14px monospace';
       ctx.textAlign = 'center';
       ctx.fillText('点击「开始游戏」', canvas.width / 2, canvas.height / 2);
@@ -117,8 +117,8 @@ export function mountSnake(container) {
     ctx.fillStyle = '#e07b39';
     ctx.fillRect(food.x * CELL + 1, food.y * CELL + 1, CELL - 2, CELL - 2);
 
-    const headColor = cssVar('--accent') || '#1a5fb4';
-    const bodyColor = cssVar('--fg') || '#1a1a1a';
+    const headColor = '#cfeaff';
+    const bodyColor = '#8fd0ff';
     snake.forEach((s, i) => {
       ctx.fillStyle = i === 0 ? headColor : bodyColor;
       ctx.fillRect(s.x * CELL + 1, s.y * CELL + 1, CELL - 2, CELL - 2);

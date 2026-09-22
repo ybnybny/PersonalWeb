@@ -125,18 +125,111 @@ $('record-player').addEventListener('click', () => {
 function openPanel(id) { $(id).classList.remove('hidden'); }
 function closePanel(id) { $(id).classList.add('hidden'); }
 
-let snakeStop = null;
-
 document.querySelectorAll('[data-close]').forEach((b) => {
-  b.addEventListener('click', () => {
-    closePanel(b.dataset.close);
-    if (b.dataset.close === 'snake-panel' && snakeStop) { snakeStop(); snakeStop = null; }
-  });
+  b.addEventListener('click', () => closePanel(b.dataset.close));
 });
 
 $('console').addEventListener('click', () => { openPanel('console-panel'); showLog(); });
 $('message-board').addEventListener('click', () => { openPanel('board-panel'); showBoard('list'); });
-$('desk').addEventListener('click', () => { openPanel('snake-panel'); snakeStop = mountSnake($('snake-wrap')); });
+
+// ---------- 电脑（老式大头一体机） ----------
+
+const COMPUTER = { sw: 46, sh: 24 };
+
+let snakeStop = null;
+let computerMode = null; // 'menu' | 'about' | 'snake' | null
+
+function stopSnake() {
+  if (snakeStop) { snakeStop(); snakeStop = null; }
+}
+
+function renderComputerFrame() {
+  const L = (a, b, c) => a + b.repeat(COMPUTER.sw) + c;
+  const rows = [L('╭', '─', '╮')];
+  for (let i = 0; i < COMPUTER.sh; i++) rows.push(L('│', ' ', '│'));
+  rows.push(L('╰', '─', '╯'));
+  rows.push(L('┌', '─', '┐'));
+  rows.push('│' + '  ░░░░      ●       ░░░░      '.padEnd(COMPUTER.sw) + '│');
+  rows.push(L('└', '─', '┘'));
+  $('computer-frame').textContent = rows.join('\n');
+}
+
+function crtItem(text, action) {
+  return el('div', { class: 'crt-item', onclick: action }, text);
+}
+
+function renderComputerMenu() {
+  computerMode = 'menu';
+  stopSnake();
+  const s = $('computer-screen');
+  s.innerHTML = '';
+  s.append(
+    el('div', { class: 'crt-title' }, 'XIAOWU-DOS v1.0 · 小屋电脑'),
+    el('div', { class: 'crt-blank' }),
+    crtItem('[1] 贪吃蛇  SNAKE', () => launchSnake()),
+    crtItem('[2] 关于本机', () => showComputerAbout()),
+    crtItem('[3] 关机', () => closeComputer()),
+    el('div', { class: 'crt-blank' }),
+    el('div', { class: 'crt-hint' }, '按数字键 1-3 选择 · ESC 关机'),
+  );
+}
+
+function showComputerAbout() {
+  computerMode = 'about';
+  const s = $('computer-screen');
+  s.innerHTML = '';
+  s.append(
+    el('div', { class: 'crt-title' }, '关于本机'),
+    el('div', { class: 'crt-text' }, '一台飘在数据海的老式大头电脑。'),
+    el('div', { class: 'crt-text' }, '它只会跑贪吃蛇。大概。'),
+    el('div', { class: 'crt-blank' }),
+    crtItem('[0] 返回菜单', () => renderComputerMenu()),
+  );
+}
+
+function launchSnake() {
+  computerMode = 'snake';
+  stopSnake();
+  const s = $('computer-screen');
+  s.innerHTML = '';
+  const bar = el('div', { class: 'crt-bar' },
+    el('button', { onclick: () => renderComputerMenu() }, '← 返回菜单'),
+    el('span', { class: 'crt-hint' }, '[Q] 返回菜单'),
+  );
+  const wrap = el('div', { id: 'snake-wrap' });
+  s.append(bar, wrap);
+  snakeStop = mountSnake(wrap);
+}
+
+function openComputer() {
+  openPanel('computer-panel');
+  renderComputerFrame();
+  renderComputerMenu();
+}
+
+function closeComputer() {
+  stopSnake();
+  computerMode = null;
+  closePanel('computer-panel');
+}
+
+$('desk').addEventListener('click', () => openComputer());
+
+document.addEventListener('keydown', (e) => {
+  if (!computerMode) return;
+  const tag = e.target && e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  const k = e.key;
+  if (computerMode === 'menu') {
+    if (k === '1') launchSnake();
+    else if (k === '2') showComputerAbout();
+    else if (k === '3' || k === 'Escape') closeComputer();
+  } else if (computerMode === 'about') {
+    if (k === '0' || k === 'Escape') renderComputerMenu();
+  } else if (computerMode === 'snake') {
+    if (k.toLowerCase() === 'q' || k === 'Escape') renderComputerMenu();
+  }
+});
 
 // ---------- 控制台：航行日志 / 通讯坐标 ----------
 
