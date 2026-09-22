@@ -39,7 +39,7 @@
 - 前端：原生 HTML/CSS/JavaScript；自有脚本用 ES Modules，第三方库用 `<script>` 全局引入（UMD）。
 - Supabase：`@supabase/supabase-js` v2，通过 CDN `<script>` 引入 **UMD 全局构建**（暴露 `window.supabase`），`js/supabase.js` 用 `window.supabase.createClient(...)` 初始化。**依赖需锁定精确版本号**：实施时在 jsDelivr 查询 `@supabase/supabase-js` 最新稳定小版本并写死（示例 `@supabase/supabase-js@2.49.1`），避免大版本漂移破坏站点。
 - 知识图谱：`cytoscape` 通过 CDN `<script>` 全局引入（暴露 `window.cytoscape`），同样锁定精确版本（示例 `cytoscape@3.30.2`）。森林为**朴素平面图，不做光效**。
-- 图谱布局：`cytoscape-fcose` 通过 CDN `<script>` 全局引入，同样锁定精确版本（示例 `cytoscape-fcose@2.2.0`），注册为 cytoscape 的 fcose 布局扩展，用于固定 `pinned` 节点（见 §10.2）。
+- 图谱布局：`cytoscape-fcose` 通过 CDN `<script>` 全局引入，同样锁定精确版本（示例 `cytoscape-fcose@2.2.0`），注册为 cytoscape 的 fcose 布局扩展，用于固定 `pinned` 节点（见 §10.2）。**注意依赖链**：fcose 依赖 `cose-base`（示例 `cose-base@2.2.0`），cose-base 又依赖 `layout-base`（示例 `layout-base@2.0.0`），三者需在页面中按「layout-base → cose-base → cytoscape-fcose」顺序引入，缺一会在布局时报 `Cannot read properties of undefined (reading 'layoutBase')`；且 fcose 的 UMD 只暴露 `window.cytoscapeFcose`，需在脚本中 `window.cytoscape.use(window.cytoscapeFcose)` 手动注册。
 - Markdown：图书馆正文用 Markdown 渲染（`marked` CDN `<script>` 全局引入，暴露 `window.marked`，锁定精确版本，示例 `marked@12.0.2`），支持插图；渲染结果统一经 **DOMPurify**（CDN `<script>` 全局引入，暴露 `window.DOMPurify`，锁定精确版本，示例 `dompurify@3.2.4`）净化，防止 XSS（访客内容同样适用，见 §9）。
 - **第三方库统一全局引入**：supabase-js / cytoscape / cytoscape-fcose / marked / DOMPurify 均用 `<script>` 标签全局引入（不 import），自有脚本（ES Modules）经 `window.*` 访问这些全局库。
 - 插图托管：正文/日志插图用 **Supabase Storage**（public bucket `images`），后台直接上传、公开页经 public URL 加载（见 §8.5）。
@@ -691,7 +691,7 @@ create trigger trg_library_updated_at
 ### 10.2 `forest.html` + `forest.js`（森林，内容页）
 - 读取 `knowledge_nodes` + `knowledge_edges`，用 Cytoscape 渲染**朴素平面图**（无光效）；布局采用 `cytoscape-fcose`，用 `fixedNodeConstraint` 将 `pinned=true` 的节点固定在其 `x/y` 坐标（0–1 归一化）、不参与自动排布，`pinned=false`（默认）的节点由自动布局决定位置；`size` 作为节点直径（px，默认 30）渲染。**坐标换算基准**：`fixedNodeConstraint` 使用模型坐标，约定以初始未缩放画布宽高为基准，pinned 节点 position =（x×画布宽, y×画布高）；后台拖拽松手时用节点模型坐标除以画布宽高换算回 0–1 写库。**坐标校准注意**：fcose 以画布中心为原点，与 0–1 左上角原点存在偏移，实施时须实测校准；若偏差明显，改为「先对非固定节点跑自动布局，再对 `pinned` 节点用 `node.position()` 直接设定位置」。连线（边）的 `label` 不显示，仅存数据库备用。
 - 交互：拖拽画布（pan）、滚轮缩放（zoom）、点击节点在侧栏展开简介 `desc`（Markdown，经 `marked`+DOMPurify 渲染）、彩色标签（`tags`，颜色随 `knowledge_tags`）与关联文章（`library_item_id`，可点「前往图书馆查看」）；**节点颜色 = 第一个标签的颜色**（无标签用主题强调色）；**公开页禁用节点拖动**，只有后台可拖节点写坐标。
-- **fcose 注册**：`cytoscape-fcose` 的 UMD 构建只暴露 `window.cytoscapeFcose`、不会自动注册，需在脚本中执行 `window.cytoscape.use(window.cytoscapeFcose)` 后方可使用 `name:'fcose'` 布局。
+- **fcose 注册与依赖**：`cytoscape-fcose` 的 UMD 构建只暴露 `window.cytoscapeFcose`、不会自动注册，需在脚本中执行 `window.cytoscape.use(window.cytoscapeFcose)`；且 fcose 依赖 `cose-base`、`cose-base` 依赖 `layout-base`，需在页面中按「layout-base → cose-base → cytoscape-fcose」顺序先引入（见 §2）。
 - **门·主房间**：与主房间的门一致——悬停（hover）到门旁显示「开门」，点击经 `postMessage` 通知外壳切回主房间。
 - 挂载 `npc.js` 猫组件（体现"恒在"，见 §5）；监听外壳广播的灯/音乐事件（§5.6）。
 - 入口处铺一行**森林**的氛围简介文字（固定单版文案，不分开灯/关灯两版；文字颜色随 `data-light` 主题变化）：`这是森林。摸不到。但走进去，会碰到很多念头。`
