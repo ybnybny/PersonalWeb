@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>森林 · 赛博串门</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape-fcose@2.2.0/cytoscape-fcose.js"></script>
+</head>
+<body>
+  <div class="content-page">
+    <div class="content-head">
+      <span class="back-door" id="back-door">🚪 门·主房间 <button class="door-btn">开门</button></span>
+      <span style="color:var(--muted)">森林</span>
+    </div>
+    <div class="content-intro">这是森林。摸不到。但走进去，会碰到很多念头。</div>
+
+    <div class="forest-wrap">
+      <div id="forest-cy"></div>
+      <aside class="forest-side" id="forest-side">
+        <div id="node-label" style="font-weight:bold;margin-bottom:8px;"></div>
+        <div id="node-desc" style="color:var(--muted);"></div>
+      </aside>
+    </div>
+  </div>
+
+  <script type="module" src="js/forest.js"></script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>后台 · 赛博串门</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape-fcose@2.2.0/cytoscape-fcose.js"></script>
+</head>
+<body class="admin-body">
+  <div id="login-view">
+    <h1>后台登录</h1>
+    <div style="max-width:320px">
+      <div class="form-field"><label>邮箱</label><input id="login-email" type="email" style="width:100%" /></div>
+      <div class="form-field"><label>密码</label><input id="login-password" type="password" style="width:100%" /></div>
+      <button id="login-submit">登录</button>
+      <div id="login-error" style="color:#b3261e;font-size:13px;margin-top:8px"></div>
+    </div>
+  </div>
+
+  <div id="admin-view" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h1 style="margin:0">后台管理</h1>
+      <button id="logout">登出</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn" data-tab="profile">航行日志</button>
+      <button class="tab-btn" data-tab="library">图书馆</button>
+      <button class="tab-btn" data-tab="forest">森林</button>
+      <button class="tab-btn" data-tab="questions">提问箱</button>
+      <button class="tab-btn" data-tab="links">通讯坐标</button>
+    </div>
+
+    <div class="admin-section" id="tab-content"></div>
+  </div>
+
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>图书馆 · 赛博串门</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+</head>
+<body>
+  <div class="content-page">
+    <div class="content-head">
+      <span class="back-door" id="back-door">🚪 门·主房间 <button class="door-btn">开门</button></span>
+      <span style="color:var(--muted)">图书馆</span>
+    </div>
+    <div class="content-intro">图书馆。书架很大，书还不多。慢慢会多起来。</div>
+
+    <div class="lib-toolbar" id="tag-bar"></div>
+    <div class="lib-list" id="lib-list"></div>
+    <div id="lib-more"></div>
+  </div>
+
+  <!-- 详情弹层 -->
+  <div class="panel-overlay hidden" id="detail-panel">
+    <div class="panel">
+      <button class="panel-close" data-close="detail-panel">×</button>
+      <h2 id="detail-title"></h2>
+      <div id="detail-meta" style="color:var(--muted);font-size:12px;margin-bottom:10px;"></div>
+      <div id="detail-body" class="markdown-body"></div>
+    </div>
+  </div>
+
+  <script type="module" src="js/library.js"></script>
+</body>
+</html>

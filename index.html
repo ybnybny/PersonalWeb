@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>赛博串门</title>
+  <meta name="description" content="一间飘在数据海的无名小屋，像素猫在等你推开门。" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐱</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="shell">
+    <aside class="shell-sidebar">
+      <h1>赛博串门</h1>
+
+      <div class="sidebar-group">
+        <div class="sidebar-label">传送器</div>
+        <button class="room-btn" data-room="home">主房间</button>
+        <button class="room-btn" data-room="forest">森林</button>
+        <button class="room-btn" data-room="library">图书馆</button>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-label">开关灯</div>
+        <button id="light-toggle">灯：开</button>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-label">音乐</div>
+        <button id="music-prev">⏮ 上一首</button>
+        <button id="music-toggle">▶ 播放</button>
+        <button id="music-next">⏭ 下一首</button>
+        <div id="music-track" style="font-size:12px;color:var(--muted)">曲目 1/2</div>
+      </div>
+    </aside>
+
+    <main class="shell-content">
+      <iframe id="content" title="内容"></iframe>
+    </main>
+  </div>
+
+  <div class="mobile-block" id="mobile-block">
+    <div>移动端暂未建设，建议前往 pc 端访问</div>
+  </div>
+
+  <audio id="bgm"></audio>
+
+  <script type="module" src="js/shell.js"></script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>主房间 · 赛博串门</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+</head>
+<body>
+  <div class="room-page">
+    <div class="room-title">主房间</div>
+
+    <div class="room" id="room">
+      <!-- 飞船控制台：上方靠墙正中 -->
+      <div class="object hoverable" id="console" style="left:40%; top:5%;">
+        🖥 飞船控制台
+        <div class="object-tooltip">航行日志 · 通讯坐标</div>
+      </div>
+
+      <!-- 门·森林（左墙） -->
+      <div class="object hoverable door" id="door-forest" style="left:3%; top:32%;">
+        🚪 门·森林 <button class="door-btn">开门</button>
+        <div class="object-tooltip">通往森林</div>
+      </div>
+
+      <!-- 门·图书馆（右墙） -->
+      <div class="object hoverable door" id="door-library" style="left:84%; top:32%;">
+        🚪 门·图书馆 <button class="door-btn">开门</button>
+        <div class="object-tooltip">通往图书馆</div>
+      </div>
+
+      <!-- 唱片机（左墙靠下） -->
+      <div class="object hoverable" id="record-player" style="left:9%; top:68%;">
+        📻 唱片机
+        <div class="object-tooltip">音乐</div>
+      </div>
+
+      <!-- 留言板（右墙靠下） -->
+      <div class="object hoverable" id="message-board" style="left:76%; top:68%;">
+        📋 留言板
+        <div class="object-tooltip">提问箱</div>
+      </div>
+
+      <!-- 生态物件 -->
+      <div class="object" id="nest" style="left:23%; top:58%;">窝</div>
+      <div class="object" id="desk" style="left:63%; top:44%;">书桌</div>
+
+      <!-- 简介文字（底部墙内） -->
+      <div id="room-intro" style="position:absolute; left:50%; transform:translateX(-50%); bottom:40px; width:92%; text-align:center; color:var(--muted); font-size:13px;"></div>
+
+      <!-- 小门厅（凸出部分，无入口） -->
+      <div class="object" id="hall" style="left:41%; bottom:-30px; width:18%; text-align:center; background:var(--bg);">
+        小门厅<br />无入口，凭空出现
+      </div>
+    </div>
+  </div>
+
+  <!-- 飞船控制台面板 -->
+  <div class="panel-overlay hidden" id="console-panel">
+    <div class="panel">
+      <button class="panel-close" data-close="console-panel">×</button>
+      <h2>飞船控制台</h2>
+      <div style="margin-bottom:10px;">
+        <button id="tab-log">① 航行日志</button>
+        <button id="tab-links">② 通讯坐标</button>
+      </div>
+      <div id="panel-body"></div>
+    </div>
+  </div>
+
+  <!-- 留言板面板 -->
+  <div class="panel-overlay hidden" id="board-panel">
+    <div class="panel">
+      <button class="panel-close" data-close="board-panel">×</button>
+      <h2>留言板</h2>
+      <div id="board-body"></div>
+    </div>
+  </div>
+
+  <script type="module" src="js/home.js"></script>
+</body>
+</html>
