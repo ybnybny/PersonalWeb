@@ -208,6 +208,7 @@ let edgeMode = false;
 let edgeFirst = null;
 let adminTags = [];
 let adminLibs = [];
+let adminLinks = [];
 
 async function renderForest(content) {
   // fcose 的 UMD 构建只暴露 window.cytoscapeFcose，不会自动注册，需手动注册
@@ -224,11 +225,12 @@ async function renderForest(content) {
   const cyEl = el('div', { id: 'admin-cy', style: 'width:100%;height:480px;border:1px solid #d5d0c8' });
   content.append(toolbar, cyEl);
 
-  const [nodesRes, edgesRes, tagsRes, libsRes] = await Promise.all([
+  const [nodesRes, edgesRes, tagsRes, libsRes, linksRes] = await Promise.all([
     supabase.from('knowledge_nodes').select('*'),
     supabase.from('knowledge_edges').select('*'),
     supabase.from('knowledge_tags').select('*'),
     supabase.from('library_items').select('id, title'),
+    supabase.from('knowledge_node_links').select('node_id, library_item_id'),
   ]);
   if (nodesRes.error || edgesRes.error) { content.appendChild(el('div', {}, '加载失败')); return; }
 
@@ -236,6 +238,7 @@ async function renderForest(content) {
   const edges = edgesRes.data || [];
   adminTags = tagsRes.data || [];
   adminLibs = libsRes.data || [];
+  adminLinks = linksRes.data || [];
 
   const colorOf = (tags) => {
     if (!tags || !tags.length) return '#005f5f';
@@ -314,35 +317,57 @@ function toggleEdgeMode() {
 
 function forestNodeForm(content, node = null) {
   content.innerHTML = '';
+  const nodeId = node ? node.id() : null;
   const label = el('input', { value: node ? node.data('label') : '', style: 'width:100%' });
-  const desc = el('textarea', { rows: '3', style: 'width:100%' });
-  desc.value = node ? (node.data('desc') || '') : '';
+
+  // 简介：Markdown 编辑器（textarea + 实时预览，支持代码块）
+  const mdEd = buildMarkdownEditor(node ? (node.data('desc') || '') : '');
+
   const tags = el('input', { value: node ? (node.data('tags') || []).join(', ') : '', placeholder: '标签用逗号分隔，颜色在「标签管理」里设置', style: 'width:100%' });
-  const libSel = el('select', { style: 'width:100%' });
-  libSel.appendChild(el('option', { value: '' }, '（不关联）'));
+
+  // 关联文章：多选复选框
+  const linked = node ? new Set(adminLinks.filter((x) => x.node_id === nodeId).map((x) => x.library_item_id)) : new Set();
+  const linkBox = el('div', { style: 'max-height:160px;overflow:auto;border:1px solid #d5d0c8;padding:8px;' });
+  const checkboxes = [];
+  if (!adminLibs.length) {
+    linkBox.appendChild(el('div', { style: 'color:#666' }, '（图书馆还没有文章）'));
+  }
   adminLibs.forEach((l) => {
-    const opt = el('option', { value: l.id }, l.title);
-    if (node && node.data('library_item_id') === l.id) opt.selected = true;
-    libSel.appendChild(opt);
+    const cb = el('input', { type: 'checkbox', value: l.id });
+    cb.checked = linked.has(l.id);
+    checkboxes.push(cb);
+    linkBox.appendChild(el('label', { style: 'display:flex;align-items:center;gap:6px;margin-bottom:4px' }, cb, l.title));
   });
 
   const save = el('button', {
     onclick: async () => {
       const tagArr = tags.value.split(/[,，、\s]+/).map((t) => t.trim()).filter(Boolean);
-      const payload = { label: label.value, desc: desc.value, tags: tagArr, library_item_id: libSel.value || null };
-      const { error } = node
-        ? await supabase.from('knowledge_nodes').update(payload).eq('id', node.id())
-        : await supabase.from('knowledge_nodes').insert({ ...payload, x: 0.5, y: 0.5, pinned: false, size: 30 });
-      alert(error ? '保存失败' : '已保存');
+      const payload = { label: label.value, desc: mdEd.getContent(), tags: tagArr };
+      let id = nodeId;
+      if (node) {
+        const { error } = await supabase.from('knowledge_nodes').update(payload).eq('id', nodeId);
+        if (error) { alert('保存失败'); return; }
+      } else {
+        const { data: row, error } = await supabase.from('knowledge_nodes').insert({ ...payload, x: 0.5, y: 0.5, pinned: false, size: 30 }).select('id').single();
+        if (error) { alert('保存失败'); return; }
+        id = row.id;
+      }
+      // 关联文章：先删后插
+      await supabase.from('knowledge_node_links').delete().eq('node_id', id);
+      const links = checkboxes.filter((c) => c.checked).map((c) => ({ node_id: id, library_item_id: c.value }));
+      if (links.length) await supabase.from('knowledge_node_links').insert(links);
+      alert('已保存');
       renderForest(content);
     },
   }, '保存');
   const cancel = el('button', { onclick: () => renderForest(content) }, '取消');
   content.append(
     field('节点名称', label),
-    field('简介', desc),
+    el('label', { style: 'display:block;margin-bottom:4px' }, '简介（Markdown，支持代码块）'),
+    mdEd.toolbar, mdEd.editor,
     field('标签', tags),
-    field('关联图书馆文章', libSel),
+    el('label', { style: 'display:block;margin-bottom:4px' }, '关联图书馆文章（可多选）'),
+    linkBox,
     el('div', { style: 'margin-top:10px' }, save, el('span', { style: 'display:inline-block;width:8px' }), cancel),
   );
 }

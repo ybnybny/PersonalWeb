@@ -57,6 +57,13 @@ create table if not exists public.knowledge_tags (
   color text not null default '#005f5f'
 );
 
+-- 森林：节点 ↔ 图书馆文章（多对多关联）
+create table if not exists public.knowledge_node_links (
+  node_id uuid not null references public.knowledge_nodes(id) on delete cascade,
+  library_item_id uuid not null references public.library_items(id) on delete cascade,
+  primary key (node_id, library_item_id)
+);
+
 -- 增量升级：旧库补列（新库无副作用；必须放在种子数据之前）
 alter table public.knowledge_nodes add column if not exists tags text[] not null default '{}';
 alter table public.knowledge_nodes add column if not exists library_item_id uuid references public.library_items(id) on delete set null;
@@ -107,6 +114,7 @@ alter table public.library_items   enable row level security;
 alter table public.knowledge_nodes enable row level security;
 alter table public.knowledge_edges enable row level security;
 alter table public.knowledge_tags  enable row level security;
+alter table public.knowledge_node_links enable row level security;
 alter table public.questions       enable row level security;
 alter table public.friend_links    enable row level security;
 
@@ -142,6 +150,9 @@ create policy "public read friend_links" on public.friend_links
   for select using (true);
 drop policy if exists "public read tags" on public.knowledge_tags;
 create policy "public read tags" on public.knowledge_tags
+  for select using (true);
+drop policy if exists "public read node links" on public.knowledge_node_links;
+create policy "public read node links" on public.knowledge_node_links
   for select using (true);
 
 -- ---------------------------------------------------------------------
@@ -266,6 +277,9 @@ create policy "admin all friend_links" on public.friend_links
 drop policy if exists "admin all tags" on public.knowledge_tags;
 create policy "admin all tags" on public.knowledge_tags
   for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "admin all node links" on public.knowledge_node_links;
+create policy "admin all node links" on public.knowledge_node_links
+  for all using (public.is_admin()) with check (public.is_admin());
 
 -- 仅管理员可写：提问箱审核/回答/隐藏（更新）
 drop policy if exists "admin update questions" on public.questions;
@@ -358,15 +372,22 @@ values
   ('工具', '#2e8b57')
 on conflict (name) do nothing;
 
--- 森林示例节点（tags 存标签名；颜色在 knowledge_tags）
-insert into public.knowledge_nodes (id, label, "desc", tags, library_item_id, x, y, pinned, size)
+-- 森林示例节点（tags 存标签名；颜色在 knowledge_tags；关联文章见 knowledge_node_links）
+insert into public.knowledge_nodes (id, label, "desc", tags, x, y, pinned, size)
 values
-  ('00000000-0000-4000-8000-000000000201', '数据结构', '森林借用「数据结构」概念。', array['课程'], null, 0.5, 0.4, true, 44),
-  ('00000000-0000-4000-8000-000000000202', '图', '节点与边的抽象结构。', array['课程'], null, 0.32, 0.6, true, 34),
-  ('00000000-0000-4000-8000-000000000203', '树', '没有环的连通图。', array['课程'], null, 0.68, 0.6, true, 34),
-  ('00000000-0000-4000-8000-000000000204', '前端', 'HTML / CSS / JavaScript。', array['兴趣'], '00000000-0000-4000-8000-000000000101', 0.35, 0.25, false, 30),
-  ('00000000-0000-4000-8000-000000000205', 'Supabase', 'Postgres + Auth + RLS。', array['工具'], null, 0.65, 0.25, false, 30)
+  ('00000000-0000-4000-8000-000000000201', '数据结构', '森林借用「数据结构」概念。', array['课程'], 0.5, 0.4, true, 44),
+  ('00000000-0000-4000-8000-000000000202', '图', '节点与边的抽象结构。', array['课程'], 0.32, 0.6, true, 34),
+  ('00000000-0000-4000-8000-000000000203', '树', '没有环的连通图。', array['课程'], 0.68, 0.6, true, 34),
+  ('00000000-0000-4000-8000-000000000204', '前端', 'HTML / CSS / JavaScript。', array['兴趣'], 0.35, 0.25, false, 30),
+  ('00000000-0000-4000-8000-000000000205', 'Supabase', 'Postgres + Auth + RLS。', array['工具'], 0.65, 0.25, false, 30)
 on conflict (id) do nothing;
+
+-- 节点 ↔ 文章关联示例（多对多）
+insert into public.knowledge_node_links (node_id, library_item_id)
+values
+  ('00000000-0000-4000-8000-000000000204', '00000000-0000-4000-8000-000000000101'),
+  ('00000000-0000-4000-8000-000000000204', '00000000-0000-4000-8000-000000000103')
+on conflict do nothing;
 
 -- 森林示例连线
 insert into public.knowledge_edges (id, source, target, label)

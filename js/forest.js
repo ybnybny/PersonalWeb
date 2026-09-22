@@ -58,6 +58,7 @@ if (nodePanel) {
 let cy = null;
 let tagColorMap = {};
 let libraryMap = {};
+let nodeLinks = {};
 
 function showNode(node) {
   const d = node.data();
@@ -76,12 +77,19 @@ function showNode(node) {
   const linkWrap = $('node-link');
   if (linkWrap) {
     linkWrap.innerHTML = '';
-    if (d.library_item_id && libraryMap[d.library_item_id]) {
-      linkWrap.appendChild(el('div', { style: 'border-top:1px dashed var(--border);padding-top:8px;' },
-        el('div', { style: 'font-size:12px;color:var(--muted)' }, '相关文章'),
-        el('div', { style: 'margin:4px 0' }, libraryMap[d.library_item_id]),
-        el('button', { onclick: () => openLibraryItem(d.library_item_id) }, '前往图书馆查看'),
-      ));
+    const ids = nodeLinks[d.id] || [];
+    if (ids.length) {
+      const box = el('div', { style: 'border-top:1px dashed var(--border);padding-top:8px;' },
+        el('div', { style: 'font-size:12px;color:var(--muted);margin-bottom:4px' }, '相关文章'),
+      );
+      ids.forEach((lid) => {
+        if (!libraryMap[lid]) return;
+        box.appendChild(el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin:3px 0;' },
+          el('span', {}, libraryMap[lid]),
+          el('button', { onclick: () => openLibraryItem(lid) }, '查看'),
+        ));
+      });
+      linkWrap.appendChild(box);
     }
   }
 
@@ -95,11 +103,12 @@ function openLibraryItem(itemId) {
 
 async function loadForest() {
   try {
-    const [nodesRes, edgesRes, tagsRes, libRes] = await Promise.all([
+    const [nodesRes, edgesRes, tagsRes, libRes, linksRes] = await Promise.all([
       supabase.from('knowledge_nodes').select('*'),
       supabase.from('knowledge_edges').select('*'),
       supabase.from('knowledge_tags').select('*'),
       supabase.from('library_items').select('id, title'),
+      supabase.from('knowledge_node_links').select('node_id, library_item_id'),
     ]);
     if (nodesRes.error) throw nodesRes.error;
     if (edgesRes.error) throw edgesRes.error;
@@ -108,6 +117,8 @@ async function loadForest() {
     (tagsRes.data || []).forEach((t) => { tagColorMap[t.name] = t.color; });
     libraryMap = {};
     (libRes.data || []).forEach((l) => { libraryMap[l.id] = l.title; });
+    nodeLinks = {};
+    (linksRes.data || []).forEach((l) => { (nodeLinks[l.node_id] = nodeLinks[l.node_id] || []).push(l.library_item_id); });
 
     const nodes = nodesRes.data || [];
     const edges = edgesRes.data || [];

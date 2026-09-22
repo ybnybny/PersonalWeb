@@ -125,12 +125,16 @@ async function openDetail(item) {
   const nodesWrap = $('detail-nodes');
   nodesWrap.innerHTML = '';
   try {
-    const { data } = await supabase.from('knowledge_nodes').select('id, label').eq('library_item_id', item.id);
-    if (data && data.length) {
-      nodesWrap.appendChild(el('div', { style: 'font-size:12px;color:var(--muted);margin-bottom:6px' }, '相关节点'));
-      data.forEach((n) => {
-        nodesWrap.appendChild(el('button', { style: 'margin:2px 4px 2px 0', onclick: () => openNode(n.id) }, n.label));
-      });
+    const { data: links } = await supabase.from('knowledge_node_links').select('node_id').eq('library_item_id', item.id);
+    const nodeIds = (links || []).map((l) => l.node_id);
+    if (nodeIds.length) {
+      const { data } = await supabase.from('knowledge_nodes').select('id, label').in('id', nodeIds);
+      if (data && data.length) {
+        nodesWrap.appendChild(el('div', { style: 'font-size:12px;color:var(--muted);margin-bottom:6px' }, '相关节点'));
+        data.forEach((n) => {
+          nodesWrap.appendChild(el('button', { style: 'margin:2px 4px 2px 0', onclick: () => openNode(n.id) }, n.label));
+        });
+      }
     }
   } catch { /* 忽略 */ }
 

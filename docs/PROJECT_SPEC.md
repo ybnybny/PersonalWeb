@@ -466,7 +466,8 @@ create table public.friend_links (
 - `library_items`：作品与笔记统一存于此，`tags` 区分类型（如 `作品` / `笔记`）并支持分类检索；正文为 Markdown，可插图；`summary` 为列表摘要（后台编辑，为空时公开页省略摘要项）。
 - `questions` 表单标准：`content` 留言内容（必填、**≤100 字**，前后端双重限制）、`submitter_name` 留言人（选填、**≤20 字**，留空=匿名，公开时显示「匿名」）、`submitter_email` 邮箱（选填，仅后台可见；首版不自动发邮件，站主手动回复）、`display_mode` 公开/不公开（二选一、必选，默认 `public`）。`hp` 为蜜罐字段；`status`：`pending` → `published` / `rejected`；`answer` 为**纯文本**（非 Markdown、≤500 字，前后端双重限制）。
 - `knowledge_nodes.x/y`：节点手动坐标，**归一化 0–1**（相对画布宽高，原点左上角）；渲染时乘以画布实际宽高换算为像素，后台拖拽时把像素换算回 0–1 存库。`pinned=true` 时公开页用该坐标锁定节点位置；`pinned=false`（默认）时由自动布局决定位置，`x/y` 存库值被忽略。`size` 为节点直径（px，默认 30），公开页渲染节点大小时使用。
-- `knowledge_nodes.tags`：节点标签名数组；节点颜色取第一个标签在 `knowledge_tags` 中的颜色，无标签时用主题强调色。`library_item_id` 关联 `library_items`（可空），用于森林节点 ↔ 图书馆文章互链。
+- `knowledge_nodes.tags`：节点标签名数组；节点颜色取第一个标签在 `knowledge_tags` 中的颜色，无标签时用主题强调色。
+- `knowledge_node_links`：森林节点 ↔ 图书馆文章的**多对多**关联表（`node_id` → `knowledge_nodes`、`library_item_id` → `library_items`，联合主键、级联删除），一个节点可关联多篇文章。
 - `knowledge_tags`：标签名 → 颜色（如 `课程`/`兴趣`/`工具`），后台可增删改；改颜色后前端节点同步变色。
 - `friend_links`：通讯坐标（友链），`url` 为对方地址，`sort_order` 控制顺序；`avatar_url` 可选，首版不渲染。
 
@@ -646,7 +647,7 @@ create trigger trg_library_updated_at
 5. 本地开发（Live Server，如 `http://127.0.0.1:5500/`）时，把本地地址一并加入 Redirect URLs 白名单，否则本地测试邮箱登录可能失败。
 
 ### 8.4 种子数据
-`sql/schema.sql` 末尾提供可选 `insert`：一行 `profile`（空间编号/状态/属空间）、3–5 条 `library_items`（含 `作品`、`笔记` 标签与 `summary` 示例）、若干 `knowledge_nodes`（含 `pinned=true` 坐标、`tags` 与 `library_item_id` 关联示例）与 `knowledge_edges`、3 条 `knowledge_tags`（含颜色）、1–2 条 `friend_links`（`name`/`url` 用占位示例，`url` 先填 `https://example.com`，站主日后替换）。
+`sql/schema.sql` 末尾提供可选 `insert`：一行 `profile`（空间编号/状态/属空间）、3–5 条 `library_items`（含 `作品`、`笔记` 标签与 `summary` 示例）、若干 `knowledge_nodes`（含 `pinned=true` 坐标、`tags` 示例）与 `knowledge_edges`、若干 `knowledge_node_links`（多对多关联示例）、3 条 `knowledge_tags`（含颜色）、1–2 条 `friend_links`（`name`/`url` 用占位示例，`url` 先填 `https://example.com`，站主日后替换）。
 
 ### 8.5 插图存储（Supabase Storage）
 - 插图（航行日志/图书馆正文内的图片）统一存 Supabase Storage 的 **public bucket** `images`，后台直接上传、公开页经 public URL 加载。
@@ -690,7 +691,7 @@ create trigger trg_library_updated_at
 
 ### 10.2 `forest.html` + `forest.js`（森林，内容页）
 - 读取 `knowledge_nodes` + `knowledge_edges`，用 Cytoscape 渲染**朴素平面图**（无光效）；布局采用 `cytoscape-fcose`，用 `fixedNodeConstraint` 将 `pinned=true` 的节点固定在其 `x/y` 坐标（0–1 归一化）、不参与自动排布，`pinned=false`（默认）的节点由自动布局决定位置；`size` 作为节点直径（px，默认 30）渲染。**坐标换算基准**：`fixedNodeConstraint` 使用模型坐标，约定以初始未缩放画布宽高为基准，pinned 节点 position =（x×画布宽, y×画布高）；后台拖拽松手时用节点模型坐标除以画布宽高换算回 0–1 写库。**坐标校准注意**：fcose 以画布中心为原点，与 0–1 左上角原点存在偏移，实施时须实测校准；若偏差明显，改为「先对非固定节点跑自动布局，再对 `pinned` 节点用 `node.position()` 直接设定位置」。连线（边）的 `label` 不显示，仅存数据库备用。
-- 交互：拖拽画布（pan）、滚轮缩放（zoom）、点击节点在**弹窗**中展开简介 `desc`（Markdown，经 `marked`+DOMPurify 渲染）、彩色标签（`tags`，颜色随 `knowledge_tags`）与关联文章（`library_item_id`，可点「前往图书馆查看」）；**节点颜色 = 第一个标签的颜色**（无标签用主题强调色）；**公开页禁用节点拖动**，只有后台可拖节点写坐标。
+- 交互：拖拽画布（pan）、滚轮缩放（zoom）、点击节点在**弹窗**中展开简介 `desc`（Markdown，经 `marked`+DOMPurify 渲染）、彩色标签（`tags`，颜色随 `knowledge_tags`）与关联文章（多篇，经 `knowledge_node_links`，每篇可点「查看」）；**节点颜色 = 第一个标签的颜色**（无标签用主题强调色）；**公开页禁用节点拖动**，只有后台可拖节点写坐标。
 - **fcose 注册与依赖**：`cytoscape-fcose` 的 UMD 构建只暴露 `window.cytoscapeFcose`、不会自动注册，需在脚本中执行 `window.cytoscape.use(window.cytoscapeFcose)`；且 fcose 依赖 `cose-base`、`cose-base` 依赖 `layout-base`，需在页面中按「layout-base → cose-base → cytoscape-fcose」顺序先引入（见 §2）。
 - **门·主房间**：与主房间的门一致——悬停（hover）到门旁显示「开门」，点击经 `postMessage` 通知外壳切回主房间。
 - 挂载 `npc.js` 猫组件（体现"恒在"，见 §5）；监听外壳广播的灯/音乐事件（§5.6）。
@@ -704,7 +705,7 @@ create trigger trg_library_updated_at
 - **门·主房间**：与主房间的门一致——悬停（hover）显示「开门」，点击经 `postMessage` 通知外壳切回主房间。
 - 正文 Markdown 渲染（可插图、可链接）；渲染统一经 `marked` + DOMPurify 净化（见 §9）。
 - 列表视图：标题 + 标签 + 日期（`updated_at`）+ 摘要（取 `summary`，为空时省略摘要项）；点开以**弹层（modal）**查看全文。
-- 详情弹层底部显示**相关节点**（读 `knowledge_nodes` 中 `library_item_id` 等于本文 id 的节点），点击可跳转森林并自动选中该节点（经 `localStorage['cv_open_node']`）。森林侧栏的「前往图书馆查看」反向经 `localStorage['cv_open_item']` 自动打开文章。
+- 详情弹层底部显示**相关节点**（读 `knowledge_node_links` 中 `library_item_id` 等于本文 id 的节点），点击可跳转森林并自动选中该节点（经 `localStorage['cv_open_node']`）。森林节点弹窗的「查看」反向经 `localStorage['cv_open_item']` 自动打开文章。
 
 ### 10.4 `admin.html` + `admin.js`（后台，无房间设定）
 - 后台不套用房间视觉与开关灯主题，**固定白底黑字的简单样式**，不使用 `data-light` 变量（§6.1 的灯光只作用于三个公开房间）。
@@ -712,7 +713,7 @@ create trigger trg_library_updated_at
 - 已登录：管理面板 tab：
   1. **航行日志**：编辑 `profile`（空间编号/状态/属空间/正文）。
   2. **图书馆**：`library_items` 增删改 + 标签设置 + 摘要（`summary`）编辑。
-  3. **森林**：节点/连线增删改 + 手动摆放节点（拖动画布中的节点，松手后把像素坐标换算为 0–1 归一化写入 `x/y`，并置 `pinned=true`；「取消固定」置 `pinned=false`，坐标忽略、恢复自动布局）。**节点表单**可设名称/简介/标签/关联文章；**标签管理**可增删标签并改颜色（节点同步变色）。**连线增删**：进入连线模式后，先点击节点 A、再点击节点 B——两点间无线则创建边、有线则删除该边；选中节点高亮并提示下一步。
+  3. **森林**：节点/连线增删改 + 手动摆放节点（拖动画布中的节点，松手后把像素坐标换算为 0–1 归一化写入 `x/y`，并置 `pinned=true`；「取消固定」置 `pinned=false`，坐标忽略、恢复自动布局）。**节点表单**可设名称/简介（Markdown 编辑器）/标签/关联文章（可多选）；**标签管理**可增删标签并改颜色（节点同步变色）。**连线增删**：进入连线模式后，先点击节点 A、再点击节点 B——两点间无线则创建边、有线则删除该边；选中节点高亮并提示下一步。
   4. **提问箱**：审核；「发布并回答」/「设为私密」/「拒绝」；可见 `submitter_email`；回答为**纯文本 textarea**（非 Markdown，`maxlength=500` 并显示计数）。
   5. **通讯坐标**：`friend_links` 增删改 + 排序。
 - 登录态：`getSession()` / `onAuthStateChange`；提供登出。
