@@ -24,9 +24,9 @@ function renderArt() {
 function measureCharWidth() {
   const probe = document.createElement('span');
   probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font-family:inherit;font-size:inherit;letter-spacing:0;';
-  probe.textContent = '──────────';
+  probe.textContent = '─'.repeat(100);
   document.body.appendChild(probe);
-  const w = probe.getBoundingClientRect().width / 10;
+  const w = probe.getBoundingClientRect().width / 100;
   probe.remove();
   return w;
 }
@@ -202,10 +202,15 @@ function renderComputerFrame() {
 
   frameEl.textContent = rows.join('\n');
 
-  screenEl.style.left = (4 * cw) + 'px';
-  screenEl.style.top = (3 * lh) + 'px';
-  screenEl.style.width = (SW * cw) + 'px';
-  screenEl.style.height = (SH * lh) + 'px';
+  // 用整数像素 + 内缩，确保屏幕不超出字符画边框
+  const leftPx = Math.round(4 * cw);
+  const topPx = Math.round(3 * lh);
+  const rightPx = Math.floor((SW + 4) * cw);
+  const bottomPx = Math.floor((SH + 3) * lh);
+  screenEl.style.left = leftPx + 'px';
+  screenEl.style.top = topPx + 'px';
+  screenEl.style.width = Math.max(1, rightPx - leftPx) + 'px';
+  screenEl.style.height = Math.max(1, bottomPx - topPx) + 'px';
 }
 
 function crtItem(text, action) {
