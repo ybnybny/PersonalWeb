@@ -83,10 +83,22 @@ function buildMarkdownEditor(initial = '') {
   const refresh = () => { preview.innerHTML = md(textarea.value); };
   textarea.addEventListener('input', refresh);
 
+  const codeBtn = el('button', {
+    onclick: () => {
+      const t = textarea;
+      const start = t.selectionStart;
+      const end = t.selectionEnd;
+      const template = '```js\n\n```';
+      t.value = t.value.slice(0, start) + template + t.value.slice(end);
+      t.selectionStart = t.selectionEnd = start + 6; // 光标停在 ```js 换行后
+      t.focus();
+      t.dispatchEvent(new Event('input'));
+    },
+  }, '插入代码块');
   const insertBtn = el('button', { onclick: () => uploadImage(textarea) }, '插入图片');
   const editor = el('div', { class: 'md-editor' }, textarea, preview);
   refresh();
-  return { toolbar: el('div', { style: 'margin-bottom:6px' }, insertBtn), editor, getContent: () => textarea.value };
+  return { toolbar: el('div', { style: 'margin-bottom:6px' }, codeBtn, el('span', { style: 'display:inline-block;width:8px' }), insertBtn), editor, getContent: () => textarea.value };
 }
 
 async function uploadImage(textarea) {
@@ -353,10 +365,18 @@ function forestNodeForm(content, node = null) {
         id = row.id;
       }
       // 关联文章：先删后插
-      await supabase.from('knowledge_node_links').delete().eq('node_id', id);
+      const delRes = await supabase.from('knowledge_node_links').delete().eq('node_id', id);
       const links = checkboxes.filter((c) => c.checked).map((c) => ({ node_id: id, library_item_id: c.value }));
-      if (links.length) await supabase.from('knowledge_node_links').insert(links);
-      alert('已保存');
+      let linkError = delRes.error;
+      if (!linkError && links.length) {
+        const insRes = await supabase.from('knowledge_node_links').insert(links);
+        linkError = insRes.error;
+      }
+      if (linkError) {
+        alert('节点已保存，但关联文章保存失败：' + linkError.message + '\n请先到 Supabase SQL Editor 执行 sql/schema.sql（建 knowledge_node_links 表）');
+      } else {
+        alert('已保存');
+      }
       renderForest(content);
     },
   }, '保存');
