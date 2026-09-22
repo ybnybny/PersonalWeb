@@ -72,12 +72,12 @@ export const SUPABASE_ANON_KEY = '你的-anon-key';
 ## 三、背景音乐与版权
 
 - 背景音乐放在 `assets/audio/bgm-1.mp3`、`assets/audio/bgm-2.mp3`，**统一 mp3**（兼容 Safari）。
-- 本仓库**不含**任何音频文件，请自行放入 **原创或 CC0/CC-BY 授权**音频，并在此处记录来源：
+- 已放入两首背景音乐（请确认授权为 **原创或 CC0/CC-BY**，来源见下表）：
 
-  | 文件 | 来源 / 授权 |
-  |---|---|
-  | `assets/audio/bgm-1.mp3` | （待填写：曲名、作者、授权链接） |
-  | `assets/audio/bgm-2.mp3` | （待填写：曲名、作者、授权链接） |
+  | 文件 | 曲名 / 作者 | 来源 / 授权 |
+  |---|---|---|
+  | `assets/audio/bgm-1.mp3` | Elf Beat — Realtime Project | Unminus（免费音乐库，建议到原站确认授权条款） |
+  | `assets/audio/bgm-2.mp3` | Sunset — Coldise | Unminus（免费音乐库，建议到原站确认授权条款） |
 
 - **红线**：不得搬运受版权保护的音乐；像素素材不使用任何受版权保护的商业游戏素材。
 
