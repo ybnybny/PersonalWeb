@@ -89,8 +89,6 @@ window.addEventListener('message', (e) => {
     setRoom(msg.room); // 门切房（传送器在边栏内直接切房）
   } else if (msg.type === 'music' && msg.action) {
     handleMusicCommand(msg.action, true); // 唱片机指令视为用户手势 → 惊扰猫
-  } else if (msg.type === 'interact') {
-    tryUnlockMusic(); // 内容页内的首次手势 → 尝试解锁音乐
   }
 });
 
@@ -114,13 +112,6 @@ lightToggle.addEventListener('click', () => {
 function loadTrack() {
   audio.src = TRACKS[bgm.trackIndex % TRACKS.length];
   audio.currentTime = bgm.currentTime || 0;
-}
-
-function tryUnlockMusic() {
-  if (bgm.on && audio.paused) {
-    if (!audio.src) loadTrack();
-    audio.play().catch(() => {});
-  }
 }
 
 function renderMusic() {
@@ -196,16 +187,28 @@ setInterval(saveBgm, 2000);
 
 function init() {
   renderLight();
-  // 音乐状态默认 on:true，但受浏览器自动播放限制：首次用户手势后才真正出声
   loadTrack();
   if (bgm.on) audio.play().catch(() => {});
   renderMusic();
   applyMobileBlock();
   setRoom(roomFromUrl(), { push: false });
 
+  // 若自动播放被浏览器拦截，给出可点击提示（浏览器策略不允许强制出声）
+  setTimeout(() => {
+    if (bgm.on && audio.paused && !audioMissing) {
+      musicTrack.textContent = '自动播放被浏览器拦截，点击任意处开始播放';
+    }
+  }, 900);
+
   // 首次用户手势后尝试出声（自动播放策略）
-  window.addEventListener('pointerdown', tryUnlockMusic, { once: true });
-  window.addEventListener('keydown', tryUnlockMusic, { once: true });
+  const unlock = () => {
+    if (bgm.on && audio.paused) {
+      if (!audio.src) loadTrack();
+      audio.play().catch(() => {});
+    }
+  };
+  window.addEventListener('pointerdown', unlock, { once: true });
+  window.addEventListener('keydown', unlock, { once: true });
 }
 
 init();

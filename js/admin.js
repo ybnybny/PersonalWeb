@@ -210,6 +210,8 @@ let adminTags = [];
 let adminLibs = [];
 
 async function renderForest(content) {
+  // fcose 的 UMD 构建只暴露 window.cytoscapeFcose，不会自动注册，需手动注册
+  if (window.cytoscape && window.cytoscapeFcose) window.cytoscape.use(window.cytoscapeFcose);
   content.innerHTML = '';
   const toolbar = el('div', { style: 'margin-bottom:8px' },
     el('button', { onclick: () => forestAddNode(content) }, '新增节点'),

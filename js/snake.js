@@ -1,61 +1,58 @@
 // =====================================================================
 // snake.js — 电脑桌上的贪吃蛇小游戏（Canvas）
-// 方向键 / WASD 移动，空格暂停；点击「开始游戏」后才开始
-// 记录本机最高分 + 历史高分 TOP10 排行榜（进榜时提示昵称）
+// 方向键 / WASD 移动，空格暂停；本机最高分 + 前十排行榜（localStorage）
 // =====================================================================
+import { el } from './ui.js';
 
-const BEST_KEY = 'cv_snake_best';
-const BOARD_KEY = 'cv_snake_board';
+const SCORES_KEY = 'cv_snake_scores';
+const TOP_N = 10;
+const SPEED = 160; // 每步毫秒（偏慢）
+
+function loadScores() {
+  try { return JSON.parse(localStorage.getItem(SCORES_KEY) || '[]'); } catch { return []; }
+}
+function saveScores(scores) {
+  localStorage.setItem(SCORES_KEY, JSON.stringify(scores));
+}
 
 export function mountSnake(container) {
   container.innerHTML = '';
 
   const GRID = 20;
   const CELL = 20;
-  const STEP_MS = 150; // 步进间隔，略慢
   const canvas = document.createElement('canvas');
   canvas.width = GRID * CELL;
   canvas.height = GRID * CELL;
   const ctx = canvas.getContext('2d');
 
+  const hud = el('div', { style: 'margin:10px 0 6px;display:flex;gap:14px;align-items:center;' });
+  const scoreEl = el('span');
+  const btn = el('button', { onclick: onButton });
+  hud.append(scoreEl, btn);
+
+  const hint = el('div', { style: 'font-size:12px;color:var(--muted);' }, '方向键 / WASD 移动，空格暂停');
+  const boardTitle = el('div', { style: 'margin-top:12px;font-weight:bold;' }, '历史高分（前十）');
+  const board = el('div', { style: 'margin-top:4px;' });
+  const nameForm = el('div', { style: 'margin-top:8px;display:none;gap:8px;align-items:center;' });
+  const nameInput = el('input', { maxlength: '12', placeholder: '留下昵称' });
+  const saveBtn = el('button', { onclick: onSaveName }, '保存成绩');
+  nameForm.append(nameInput, saveBtn);
+
+  container.append(canvas, hud, hint, nameForm, boardTitle, board);
+
   const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
-  const hud = document.createElement('div');
-  hud.style.cssText = 'margin:10px 0 6px;display:flex;gap:14px;align-items:center;';
-  const scoreEl = document.createElement('span');
-  const bestEl = document.createElement('span');
-  const btn = document.createElement('button');
-  hud.append(scoreEl, bestEl, btn);
-
-  const hint = document.createElement('div');
-  hint.textContent = '方向键 / WASD 移动，空格暂停';
-  hint.style.cssText = 'font-size:12px;color:var(--muted);';
-
-  const boardTitle = document.createElement('div');
-  boardTitle.textContent = '历史高分 TOP 10';
-  boardTitle.style.cssText = 'margin-top:10px;font-size:12px;color:var(--muted);';
-  const boardList = document.createElement('div');
-  boardList.style.cssText = 'font-size:13px;';
-
-  container.append(canvas, hud, hint, boardTitle, boardList);
-
-  function loadBest() { return parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0; }
-  function loadBoard() { try { const b = JSON.parse(localStorage.getItem(BOARD_KEY) || '[]'); return Array.isArray(b) ? b : []; } catch { return []; } }
-  function saveBest(v) { localStorage.setItem(BEST_KEY, String(v)); }
-  function saveBoard(b) { localStorage.setItem(BOARD_KEY, JSON.stringify(b)); }
-
-  let best = loadBest();
-  let board = loadBoard();
-
-  let snake, dir, nextDir, food, score, running, paused, timer;
+  let snake, dir, nextDir, food, score, paused, timer;
+  let scores = loadScores();
+  let state = 'idle'; // idle | playing | over
 
   function reset() {
     snake = [{ x: 9, y: 10 }, { x: 8, y: 10 }, { x: 7, y: 10 }];
     dir = { x: 1, y: 0 };
     nextDir = dir;
     score = 0;
-    running = false; // 不自动开始，等点「开始游戏」
     paused = false;
+    nameForm.style.display = 'none';
     placeFood();
   }
 
@@ -65,8 +62,14 @@ export function mountSnake(container) {
     } while (snake.some((s) => s.x === food.x && s.y === food.y));
   }
 
+  function qualifies() {
+    if (score <= 0) return false;
+    if (scores.length < TOP_N) return true;
+    return score > scores[scores.length - 1].score;
+  }
+
   function step() {
-    if (!running || paused) return;
+    if (state !== 'playing' || paused) return;
     dir = nextDir;
     const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
     const hitWall = head.x < 0 || head.x >= GRID || head.y < 0 || head.y >= GRID;
@@ -81,37 +84,35 @@ export function mountSnake(container) {
   }
 
   function gameOver() {
-    running = false;
+    state = 'over';
     clearInterval(timer);
-
-    if (score > 0) {
-      const qualifies = board.length < 10 || score > board[board.length - 1].score;
-      if (qualifies) {
-        const name = (window.prompt('进入排行榜了！请留下昵称：', '') || '').trim().slice(0, 12) || '匿名';
-        board.push({ name, score });
-        board.sort((a, b) => b.score - a.score);
-        board = board.slice(0, 10);
-        saveBoard(board);
-      }
-      if (score > best) { best = score; saveBest(best); }
-    }
-
     draw();
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#fff';
     ctx.font = '16px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('游戏结束', canvas.width / 2, canvas.height / 2);
+    ctx.fillText(`游戏结束 · ${score} 分`, canvas.width / 2, canvas.height / 2);
     ctx.textAlign = 'left';
-
-    updateHud();
-    renderBoard();
+    btn.textContent = '再来一局';
+    if (qualifies()) {
+      nameForm.style.display = 'flex';
+      nameInput.focus();
+    }
   }
 
   function draw() {
     ctx.fillStyle = cssVar('--bg') || '#fff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (state === 'idle') {
+      ctx.fillStyle = cssVar('--muted') || '#888';
+      ctx.font = '14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('点击「开始游戏」', canvas.width / 2, canvas.height / 2);
+      ctx.textAlign = 'left';
+      return;
+    }
 
     ctx.fillStyle = '#e07b39';
     ctx.fillRect(food.x * CELL + 1, food.y * CELL + 1, CELL - 2, CELL - 2);
@@ -124,47 +125,51 @@ export function mountSnake(container) {
     });
   }
 
-  function updateHud() {
-    scoreEl.textContent = `分数：${score}`;
-    bestEl.textContent = `最高：${best}`;
-    btn.textContent = running ? (paused ? '继续' : '暂停') : '开始游戏';
-  }
-
   function renderBoard() {
-    boardList.innerHTML = '';
-    if (!board.length) {
-      boardList.textContent = '还没有记录。';
+    board.innerHTML = '';
+    if (!scores.length) {
+      board.appendChild(el('div', { style: 'color:var(--muted);font-size:13px' }, '暂无记录'));
       return;
     }
-    board.forEach((r, i) => {
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;justify-content:space-between;max-width:220px;';
-      const left = document.createElement('span');
-      left.textContent = `${i + 1}. ${r.name}`;
-      const right = document.createElement('span');
-      right.textContent = r.score;
-      row.append(left, right);
-      boardList.appendChild(row);
+    scores.slice(0, TOP_N).forEach((s, i) => {
+      board.appendChild(el('div', { style: 'font-size:13px;margin-bottom:2px' }, `${i + 1}. ${s.name} — ${s.score} 分`));
     });
+  }
+
+  function updateHud() {
+    scoreEl.textContent = `分数：${score}`;
+    if (state === 'playing') btn.textContent = paused ? '继续' : '暂停';
+    else if (state === 'over') btn.textContent = '再来一局';
+    else btn.textContent = '开始游戏';
   }
 
   function start() {
     reset();
-    running = true;
+    state = 'playing';
     clearInterval(timer);
-    timer = setInterval(step, STEP_MS);
+    timer = setInterval(step, SPEED);
     updateHud();
-    renderBoard();
     draw();
   }
 
-  btn.onclick = () => {
-    if (!running) { start(); return; }
-    paused = !paused;
-    updateHud();
-  };
+  function onButton() {
+    if (state === 'idle' || state === 'over') { start(); return; }
+    if (state === 'playing') { paused = !paused; updateHud(); }
+  }
+
+  function onSaveName() {
+    const name = nameInput.value.trim() || '匿名';
+    scores.push({ name, score, date: Date.now() });
+    scores.sort((a, b) => b.score - a.score);
+    scores = scores.slice(0, TOP_N);
+    saveScores(scores);
+    nameForm.style.display = 'none';
+    nameInput.value = '';
+    renderBoard();
+  }
 
   const onKey = (e) => {
+    if (state !== 'playing') return;
     const k = e.key.toLowerCase();
     let d = null;
     if (k === 'arrowup' || k === 'w') d = { x: 0, y: -1 };
@@ -173,20 +178,18 @@ export function mountSnake(container) {
     else if (k === 'arrowright' || k === 'd') d = { x: 1, y: 0 };
     else if (k === ' ') {
       e.preventDefault();
-      if (running) { paused = !paused; updateHud(); }
+      if (state === 'playing') { paused = !paused; updateHud(); }
       return;
     }
     if (d) {
       e.preventDefault();
-      if (!running) { start(); return; } // 首次按方向键也直接开始
       if (!(d.x === -dir.x && d.y === -dir.y)) nextDir = d;
     }
   };
   window.addEventListener('keydown', onKey);
 
-  reset();
-  draw();
   updateHud();
+  draw();
   renderBoard();
 
   return function stop() {

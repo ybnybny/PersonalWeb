@@ -9,8 +9,9 @@ import { Npc } from './npc.js';
 
 const $ = (id) => document.getElementById(id);
 
-function cssVar(name) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+// fcose 的 UMD 构建只暴露 window.cytoscapeFcose，不会自动注册，需手动注册到 cytoscape
+if (window.cytoscape && window.cytoscapeFcose) {
+  window.cytoscape.use(window.cytoscapeFcose);
 }
 
 function md(text) {
@@ -19,6 +20,10 @@ function md(text) {
     ? marked.parse(text || '')
     : String(text || '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
   return (window.DOMPurify && window.DOMPurify.sanitize) ? window.DOMPurify.sanitize(raw) : raw;
+}
+
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
 function applyLight(value) {
@@ -40,19 +45,21 @@ let tagColorMap = {};
 let libraryMap = {};
 
 function showNode(node) {
-  try {
-    const d = node.data();
-    $('node-label').textContent = d.label || '';
-    $('node-desc').innerHTML = md(d.desc || '');
+  const d = node.data();
+  $('node-label').textContent = d.label || '';
+  $('node-desc').innerHTML = md(d.desc || '');
 
-    const tagsWrap = $('node-tags');
+  const tagsWrap = $('node-tags');
+  if (tagsWrap) {
     tagsWrap.innerHTML = '';
     (d.tags || []).forEach((t) => {
       const color = tagColorMap[t];
       tagsWrap.appendChild(el('span', { class: 'tag-chip', style: color ? `background:${color}` : '' }, t));
     });
+  }
 
-    const linkWrap = $('node-link');
+  const linkWrap = $('node-link');
+  if (linkWrap) {
     linkWrap.innerHTML = '';
     if (d.library_item_id && libraryMap[d.library_item_id]) {
       linkWrap.appendChild(el('div', { style: 'border-top:1px dashed var(--border);padding-top:8px;' },
@@ -61,11 +68,9 @@ function showNode(node) {
         el('button', { onclick: () => openLibraryItem(d.library_item_id) }, '前往图书馆查看'),
       ));
     }
-
-    $('forest-side').classList.add('show');
-  } catch (err) {
-    console.error('showNode 失败：', err);
   }
+
+  $('forest-side').classList.add('show');
 }
 
 function openLibraryItem(itemId) {
@@ -175,6 +180,18 @@ async function loadForest() {
         const node = cy.getElementById(n.id);
         if (node && node.length) node.position({ x: (n.x - 0.5) * W, y: (n.y - 0.5) * H });
       });
+
+      // 从图书馆「相关节点」跳转过来时自动定位并打开对应节点（须在布局完成后执行）
+      const openNode = localStorage.getItem('cv_open_node');
+      if (openNode) {
+        localStorage.removeItem('cv_open_node');
+        const node = cy.getElementById(openNode);
+        if (node && node.length) {
+          showNode(node);
+          cy.fit(node, 120);
+          return;
+        }
+      }
       cy.fit(undefined, 24);
     });
     layout.run();
@@ -183,19 +200,7 @@ async function loadForest() {
     cy.on('tap', (evt) => {
       if (evt.target === cy) $('forest-side').classList.remove('show');
     });
-
-    // 从图书馆「相关节点」跳转过来时自动打开对应节点
-    const openNode = localStorage.getItem('cv_open_node');
-    if (openNode) {
-      localStorage.removeItem('cv_open_node');
-      const node = cy.getElementById(openNode);
-      if (node && node.length) {
-        showNode(node);
-        cy.animate({ fit: { eles: node, padding: 120 }, duration: 300 });
-      }
-    }
-  } catch (err) {
-    console.error('loadForest 失败：', err);
+  } catch {
     toastLoadError(loadForest);
   }
 }
