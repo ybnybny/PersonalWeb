@@ -5,6 +5,7 @@ import { supabase } from './supabase.js';
 import { getLight, getBgm } from './settings.js';
 import { el, setText, toast, toastLoadError } from './ui.js';
 import { Npc } from './npc.js';
+import { mountSnake } from './snake.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -56,18 +57,27 @@ $('record-player').addEventListener('click', () => {
 function openPanel(id) { $(id).classList.remove('hidden'); }
 function closePanel(id) { $(id).classList.add('hidden'); }
 
+let snakeStop = null;
+
 document.querySelectorAll('[data-close]').forEach((b) => {
-  b.addEventListener('click', () => closePanel(b.dataset.close));
+  b.addEventListener('click', () => {
+    closePanel(b.dataset.close);
+    if (b.dataset.close === 'snake-panel' && snakeStop) { snakeStop(); snakeStop = null; }
+  });
 });
 
 $('console').addEventListener('click', () => { openPanel('console-panel'); showLog(); });
-$('message-board').addEventListener('click', () => { openPanel('board-panel'); loadQuestions(1); });
+$('message-board').addEventListener('click', () => { openPanel('board-panel'); showBoard('list'); });
+$('desk').addEventListener('click', () => { openPanel('snake-panel'); snakeStop = mountSnake($('snake-wrap')); });
 
 // ---------- 控制台：航行日志 / 通讯坐标 ----------
 
 function md(text) {
-  const html = window.marked.parse(text || '');
-  return window.DOMPurify.sanitize(html);
+  const marked = window.marked;
+  const raw = (marked && marked.parse)
+    ? marked.parse(text || '')
+    : String(text || '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+  return (window.DOMPurify && window.DOMPurify.sanitize) ? window.DOMPurify.sanitize(raw) : raw;
 }
 
 async function showLog() {
@@ -126,12 +136,21 @@ const PAGE_SIZE = 20;
 let boardPage = 1;
 let boardTotal = 0;
 
-async function loadQuestions(page = 1, append = false) {
+function showBoard(view) {
+  $('board-tab-list').classList.toggle('active', view === 'list');
+  $('board-tab-form').classList.toggle('active', view === 'form');
   const body = $('board-body');
-  if (!append) {
-    body.innerHTML = '';
-    body.appendChild(renderSubmitForm());
-  }
+  body.innerHTML = '';
+  if (view === 'list') loadQuestionList();
+  else body.appendChild(renderSubmitForm());
+}
+
+$('board-tab-list').addEventListener('click', () => showBoard('list'));
+$('board-tab-form').addEventListener('click', () => showBoard('form'));
+
+async function loadQuestionList(page = 1, append = false) {
+  const body = $('board-body');
+  if (!append) { body.innerHTML = ''; boardPage = page; }
   try {
     const [q, c] = await Promise.all([
       supabase.rpc('get_published_questions', { page, page_size: PAGE_SIZE }),
@@ -150,33 +169,26 @@ async function loadQuestions(page = 1, append = false) {
       qEl.appendChild(qLine);
       qEl.appendChild(el('div', { style: 'font-size:12px;color:var(--muted)' }, `—— ${name}`));
       const aEl = el('div', { class: 'qa-a' });
-      if (item.answer) {
-        setText(aEl, `答：${item.answer}`);
-      } else {
-        setText(aEl, '待回复');
-        aEl.classList.add('qa-pending');
-      }
+      if (item.answer) { setText(aEl, `答：${item.answer}`); }
+      else { setText(aEl, '待回复'); aEl.classList.add('qa-pending'); }
       qEl.appendChild(aEl);
       list.appendChild(qEl);
     });
 
-    const hasMore = boardPage * PAGE_SIZE < boardTotal;
     const oldMore = body.querySelector('.load-more');
     if (oldMore) oldMore.remove();
-    if (hasMore) {
-      body.appendChild(el('button', { class: 'load-more', onclick: () => loadQuestions(boardPage + 1, true) }, '加载更多'));
+    if (boardPage * PAGE_SIZE < boardTotal) {
+      body.appendChild(el('button', { class: 'load-more', onclick: () => loadQuestionList(boardPage + 1, true) }, '加载更多'));
     }
   } catch {
-    toastLoadError(() => loadQuestions(page, append));
+    toastLoadError(() => loadQuestionList(page, append));
   }
 }
 
 let lastSubmit = 0;
 
 function renderSubmitForm() {
-  const wrap = el('div', { style: 'border-top:1px dashed var(--border); padding-top:12px; margin-bottom:12px;' });
-  wrap.appendChild(el('h3', { style: 'font-size:14px' }, '投递便签'));
-
+  const wrap = el('div', {});
   const content = el('textarea', { id: 'f-content', maxlength: '100', rows: '3', style: 'width:100%' });
   const contentCount = el('div', { class: 'counter' }, '0 / 100');
   content.addEventListener('input', () => { contentCount.textContent = `${content.value.length} / 100`; });
@@ -206,10 +218,7 @@ function renderSubmitForm() {
 
 async function onSubmit() {
   const now = Date.now();
-  if (now - lastSubmit < 10000) {
-    toast('稍后再试');
-    return;
-  }
+  if (now - lastSubmit < 10000) { toast('稍后再试'); return; }
   const content = $('f-content').value.trim();
   if (!content) { toast('留言内容不能为空'); return; }
   const name = $('f-name').value.trim();
@@ -228,14 +237,8 @@ async function onSubmit() {
     });
     if (error) throw error;
     toast('便签已投递');
-    $('f-content').value = '';
-    $('f-name').value = '';
-    $('f-email').value = '';
-    document.querySelector('input[name="hp"]').value = '';
-    const counter = document.querySelector('#board-body .counter');
-    if (counter) counter.textContent = '0 / 100';
     boardPage = 1;
-    loadQuestions(1);
+    showBoard('list');
   } catch (e) {
     toast('操作失败');
   }

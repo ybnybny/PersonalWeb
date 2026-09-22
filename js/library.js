@@ -28,8 +28,11 @@ document.querySelector('[data-close]').addEventListener('click', () => {
 });
 
 function md(text) {
-  const html = window.marked.parse(text || '');
-  return window.DOMPurify.sanitize(html);
+  const marked = window.marked;
+  const raw = (marked && marked.parse)
+    ? marked.parse(text || '')
+    : String(text || '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+  return (window.DOMPurify && window.DOMPurify.sanitize) ? window.DOMPurify.sanitize(raw) : raw;
 }
 
 function fmtDate(iso) {
@@ -113,17 +116,47 @@ function renderMore() {
   }
 }
 
-function openDetail(item) {
+async function openDetail(item) {
   $('detail-title').textContent = item.title;
   const tags = (item.tags || []).map((t) => `#${t}`).join(' ');
   $('detail-meta').textContent = `${fmtDate(item.updated_at)}${tags ? ' · ' + tags : ''}`;
   $('detail-body').innerHTML = md(item.content_md);
+
+  const nodesWrap = $('detail-nodes');
+  nodesWrap.innerHTML = '';
+  try {
+    const { data } = await supabase.from('knowledge_nodes').select('id, label').eq('library_item_id', item.id);
+    if (data && data.length) {
+      nodesWrap.appendChild(el('div', { style: 'font-size:12px;color:var(--muted);margin-bottom:6px' }, '相关节点'));
+      data.forEach((n) => {
+        nodesWrap.appendChild(el('button', { style: 'margin:2px 4px 2px 0', onclick: () => openNode(n.id) }, n.label));
+      });
+    }
+  } catch { /* 忽略 */ }
+
   $('detail-panel').classList.remove('hidden');
+}
+
+function openNode(nodeId) {
+  localStorage.setItem('cv_open_node', nodeId);
+  window.parent.postMessage({ type: 'navigate', room: 'forest' }, location.origin);
 }
 
 applyLight(getLight());
 loadTags();
 loadItems(true);
+
+// 从森林「前往图书馆查看」跳转过来时自动打开对应文章
+const pendingItem = localStorage.getItem('cv_open_item');
+if (pendingItem) {
+  localStorage.removeItem('cv_open_item');
+  (async () => {
+    try {
+      const { data, error } = await supabase.from('library_items').select('*').eq('id', pendingItem).single();
+      if (!error && data) openDetail(data);
+    } catch { /* 忽略 */ }
+  })();
+}
 
 const npc = new Npc(document.querySelector('.content-page'));
 npc.startIdle();

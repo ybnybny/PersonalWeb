@@ -447,3 +447,38 @@ pre.ascii {
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* =====================================================================
+   Markdown 代码块 / 标签 chip / 贪吃蛇
+   ===================================================================== */
+
+.markdown-body pre {
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  overflow: auto;
+  line-height: 1.4;
+}
+.markdown-body code {
+  background: var(--accent-soft);
+  padding: 1px 5px;
+}
+.markdown-body pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.tag-chip {
+  display: inline-block;
+  color: #fff;
+  padding: 1px 8px;
+  margin: 2px 4px 2px 0;
+  font-size: 12px;
+  border: 1px solid transparent;
+}
+
+#snake-wrap canvas {
+  display: block;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+}

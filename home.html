@@ -46,7 +46,9 @@
 
       <!-- 生态物件 -->
       <div class="object" id="nest" style="left:23%; top:58%;">窝</div>
-      <div class="object" id="desk" style="left:63%; top:44%;">书桌</div>
+      <div class="object hoverable" id="desk" style="left:63%; top:44%;">🖥 电脑桌
+        <div class="object-tooltip">可以玩电脑（贪吃蛇）</div>
+      </div>
 
       <!-- 简介文字（底部墙内） -->
       <div id="room-intro" style="position:absolute; left:50%; transform:translateX(-50%); bottom:40px; width:92%; text-align:center; color:var(--muted); font-size:13px;"></div>
@@ -76,7 +78,20 @@
     <div class="panel">
       <button class="panel-close" data-close="board-panel">×</button>
       <h2>留言板</h2>
+      <div style="margin-bottom:10px;">
+        <button id="board-tab-list" class="tag-btn active">查看留言</button>
+        <button id="board-tab-form" class="tag-btn">投递便签</button>
+      </div>
       <div id="board-body"></div>
+    </div>
+  </div>
+
+  <!-- 电脑桌：贪吃蛇 -->
+  <div class="panel-overlay hidden" id="snake-panel">
+    <div class="panel">
+      <button class="panel-close" data-close="snake-panel">×</button>
+      <h2>电脑：贪吃蛇</h2>
+      <div id="snake-wrap"></div>
     </div>
   </div>
 

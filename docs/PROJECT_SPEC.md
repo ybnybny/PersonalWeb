@@ -101,7 +101,7 @@ GitHub Pages 零配置托管根目录下的页面：常驻外壳 `index.html`（
 - **唱片机 / 留言板**：分别位于主房间左、右墙面靠下处（唱片机=音乐、留言板=提问箱），见上方示意图；二者均在主房间墙面上、不在门厅内。
 - **门·森林 / 门·图书馆**：主房间左右墙，鼠标悬停（hover）靠近门时显示「开门」按钮。
 - **像素猫**：无固定位置，随机转移位置、切换待机动作；不主动靠近访客；恒在——主房间、森林、图书馆各内容页都挂载猫组件（切房即重新在场，不做跨房位置连续）。
-- **生态物件**：窝、书桌等，可做彩蛋交互或纯装饰（非核心功能）。
+- **生态物件**：窝、电脑桌等；电脑桌可点开内置**贪吃蛇小游戏**，其余可做彩蛋交互或纯装饰。
 - **简介文字**：铺在**主房间底部墙内**（小门厅凸出部分的上方），随开关灯切换——
   - 开灯：`一间飘在数据海的小屋。没有名字。灯亮着。`
   - 关灯：`一间飘在数据海的小屋。没有名字。灯灭了。`
@@ -220,7 +220,7 @@ Npc.skip()                        // 跳过当前打字，立即显示完整文�
 - 每隔一段时间随机转移位置并切换待机动作。
 - 生态物件（联动位置）：
   - **窝**（不叫"猫窝"）：夜晚睡觉必在此处；白天睡觉、发呆、打电脑、画画、吃东西可能在此处，也可能在别处。
-  - **书桌**：除睡觉外的任何活动都可能在此处。
+  - **电脑桌**：除睡觉外的任何活动都可能在此处（此物件同时也是访客可玩的贪吃蛇入口）。
   - **地板**（地图空白区域）：任何活动都可能在此处。
   - 规则优先级：窝的「夜晚睡觉必在窝」优先于地板「任何活动」。
 - **状态 ↔ 动作映射**：
@@ -344,7 +344,7 @@ quee……rrrrrrrr
 - 像素图渲染：对所有像素图加 `image-rendering: pixelated;`，避免放大后模糊。
 
 ### 6.3 房间场景（主房间）
-- 以 CSS 网格/绝对定位 + ASCII 边框搭建"凸"字形主房间，内含可点击物件：飞船控制台、留言板、唱片机、门·森林、门·图书馆，以及生态物件（窝、书桌等）。
+- 以 CSS 网格/绝对定位 + ASCII 边框搭建"凸"字形主房间，内含可点击物件：飞船控制台、留言板、唱片机、门·森林、门·图书馆，以及生态物件（窝、电脑桌等）。
 - 物件 hover 时高亮，并显示**系统发出的物品介绍卡**（悬浮提示，非猫台词）；猫不引导物件（见 §5.4）。
 - 实现从简：猫用 ASCII、地图与物件用 CSS 像素画，不使用位图素材。
 
@@ -357,7 +357,7 @@ quee……rrrrrrrr
 - 播放器实现：外壳 `index.html` 内常驻 `<audio>`（**不再使用 player.html / 逐页 iframe**）。外壳不随切房重载，因此音乐**自动续播、零中断**。内容页（唱片机）经 `postMessage` 向外壳发送播放/暂停/切歌指令（仅在用户手势时发送），边栏直接操作外壳播放器；外壳执行后向内容页广播 `{type:'music', action, startle}`（`startle:true` 供猫受惊，`startle:false` 仅同步唱片机显示），唱片机收到广播只更新显示、不回发，避免消息回路；**自动续播、一首播完自动进入下一首以 `startle:false` 广播**，猫不因此受惊；外壳每 2 秒把 `currentTime` 写回 `localStorage['cv_bgm']`。
 - 本地 `<audio>` 播放自有音频（原创或 CC0/CC-BY，放 `assets/audio/`），2 首循环，统一 mp3（兼容 Safari）。
 - 控件：播放/暂停、上一首/下一首（无音量调节，用户自行调整设备音量）；状态持久化于 `cv_bgm`（`{ on, trackIndex, currentTime }`），刷新后从 `currentTime` 续播。
-- 浏览器自动播放限制：状态默认 `on:true`（意图播放），但受浏览器自动播放策略限制，首次点击后才真正出声；因外壳常驻，后续切房无需再次点击即可续播。
+- 自动播放：**进入页面即尝试自动播放**（状态默认 `on:true`）；受浏览器自动播放策略限制时首次点击后才真正出声；因外壳常驻，后续切房无需再次点击即可续播。
 - 版权红线：**不得搬运受版权保护的音乐**；`README.md` 标注音频来源。
 - 所有偏好键（`cv_light`/`cv_bgm` 等）均带 `cv_` 前缀，避免与同域名下其它 GitHub Pages 项目冲突。
 
@@ -409,11 +409,19 @@ create table public.library_items (
 create table public.knowledge_nodes (
   id uuid primary key default gen_random_uuid(),
   label text not null,
-  desc text not null default '',
+  "desc" text not null default '',
+  tags text[] not null default '{}',      -- 标签（标签名数组，颜色见 knowledge_tags）
+  library_item_id uuid references public.library_items(id) on delete set null,  -- 关联图书馆文章（可空）
   x float not null default 0 check (x between 0 and 1),  -- 归一化坐标 0–1（相对画布宽高，原点左上角）
   y float not null default 0 check (y between 0 and 1),
   pinned boolean not null default false,  -- true=使用手动坐标，公开页锁定位置
   size int not null default 30            -- 节点直径（px，默认 30），渲染时作为节点宽高
+);
+
+-- 森林：节点标签（标签名 → 颜色）
+create table public.knowledge_tags (
+  name text primary key,
+  color text not null default '#005f5f'
 );
 
 -- 森林：连线
@@ -458,6 +466,8 @@ create table public.friend_links (
 - `library_items`：作品与笔记统一存于此，`tags` 区分类型（如 `作品` / `笔记`）并支持分类检索；正文为 Markdown，可插图；`summary` 为列表摘要（后台编辑，为空时公开页省略摘要项）。
 - `questions` 表单标准：`content` 留言内容（必填、**≤100 字**，前后端双重限制）、`submitter_name` 留言人（选填、**≤20 字**，留空=匿名，公开时显示「匿名」）、`submitter_email` 邮箱（选填，仅后台可见；首版不自动发邮件，站主手动回复）、`display_mode` 公开/不公开（二选一、必选，默认 `public`）。`hp` 为蜜罐字段；`status`：`pending` → `published` / `rejected`；`answer` 为**纯文本**（非 Markdown、≤500 字，前后端双重限制）。
 - `knowledge_nodes.x/y`：节点手动坐标，**归一化 0–1**（相对画布宽高，原点左上角）；渲染时乘以画布实际宽高换算为像素，后台拖拽时把像素换算回 0–1 存库。`pinned=true` 时公开页用该坐标锁定节点位置；`pinned=false`（默认）时由自动布局决定位置，`x/y` 存库值被忽略。`size` 为节点直径（px，默认 30），公开页渲染节点大小时使用。
+- `knowledge_nodes.tags`：节点标签名数组；节点颜色取第一个标签在 `knowledge_tags` 中的颜色，无标签时用主题强调色。`library_item_id` 关联 `library_items`（可空），用于森林节点 ↔ 图书馆文章互链。
+- `knowledge_tags`：标签名 → 颜色（如 `课程`/`兴趣`/`工具`），后台可增删改；改颜色后前端节点同步变色。
 - `friend_links`：通讯坐标（友链），`url` 为对方地址，`sort_order` 控制顺序；`avatar_url` 可选，首版不渲染。
 
 ### 8.2 Row Level Security 策略
@@ -636,11 +646,11 @@ create trigger trg_library_updated_at
 5. 本地开发（Live Server，如 `http://127.0.0.1:5500/`）时，把本地地址一并加入 Redirect URLs 白名单，否则本地测试邮箱登录可能失败。
 
 ### 8.4 种子数据
-`sql/schema.sql` 末尾提供可选 `insert`：一行 `profile`（空间编号/状态/属空间）、3–5 条 `library_items`（含 `作品`、`笔记` 标签与 `summary` 示例）、若干 `knowledge_nodes`（含 `pinned=true` 的坐标示例）与 `knowledge_edges`、1–2 条 `friend_links`（`name`/`url` 用占位示例，`url` 先填 `https://example.com`，站主日后替换）。
+`sql/schema.sql` 末尾提供可选 `insert`：一行 `profile`（空间编号/状态/属空间）、3–5 条 `library_items`（含 `作品`、`笔记` 标签与 `summary` 示例）、若干 `knowledge_nodes`（含 `pinned=true` 坐标、`tags` 与 `library_item_id` 关联示例）与 `knowledge_edges`、3 条 `knowledge_tags`（含颜色）、1–2 条 `friend_links`（`name`/`url` 用占位示例，`url` 先填 `https://example.com`，站主日后替换）。
 
 ### 8.5 插图存储（Supabase Storage）
 - 插图（航行日志/图书馆正文内的图片）统一存 Supabase Storage 的 **public bucket** `images`，后台直接上传、公开页经 public URL 加载。
-- 建 bucket 与策略（加在 `sql/schema.sql` 末尾）：`insert into storage.buckets (id, name, public) values ('images', 'images', true) on conflict (id) do nothing;`；`storage.objects` 启用 RLS，公开读 `for select using (bucket_id = 'images')`，管理员写 `for insert/update/delete using (public.is_admin()) with check (public.is_admin())`。
+- 建 bucket 与策略：`storage.objects` 属 `supabase_storage_admin` 所有，SQL Editor 无权建策略（会报 `must be owner of table objects`），**改为在 Dashboard 手动配置**：Storage → New bucket 建 public bucket `images`；再为该 bucket 建策略，允许 `authenticated` 角色 INSERT/UPDATE/DELETE（USING 与 WITH CHECK 均 `bucket_id = 'images'`）。公开读取由「Public bucket」直接提供。
 - 上传路径建议 `public/<时间戳或uuid>.<ext>`；公开 URL 形如 `https://<项目>.supabase.co/storage/v1/object/public/images/<路径>`；后台前端限制单文件 ≤5MB、类型 png/jpg/webp/gif。
 
 ---
@@ -670,17 +680,17 @@ create trigger trg_library_updated_at
 ### 10.1 `home.html` + `home.js`（主房间，内容页）
 - 渲染"凸"字形主房间与物件（§3.3 布局）。
 - **飞船控制台**（面板）：① 航行日志（读 `profile`：`space_id`/`status`/`affiliation` 作为面板头部元数据块展示，`log_md` 正文经 `marked` + DOMPurify 渲染）② 通讯坐标（读 `friend_links`，首版纯文字列表，不渲染 `avatar_url`）。
-- **留言板**（面板）：已发布问答墙（调用 `get_published_questions(page, 20)` + `get_published_questions_count()`，分页「加载更多」）+ 投递表单（经 `supabase.rpc('submit_question', {...})` 提交）。投递表单字段：**留言内容**（`content`，必填、≤100 字，前端 `maxlength=100` 并显示计数）、**留言人**（`submitter_name`，选填、≤20 字，前端 `maxlength=20`，留空=匿名）、**邮箱**（`submitter_email`，选填，仅后台可见，首版不自动发邮件；前端 `type="email"` 格式校验、后端 check 兜底）、**公开/不公开**（`display_mode`：`public`/`private`，二选一必选，默认公开）；表单含隐藏蜜罐字段 `hp`，并做简单前端频控（短时间重复提交提示稍后再试）。公开问答墙：`public` 题目显示留言人或「匿名」（留言人留空时）与回复内容（已回答显示答案，未回答显示「待回复」占位）；**不显示提问日期与回答日期**；`private` 不显示。访客提交的 `content`、`submitter_name` 与回答 `answer` 均为纯文本，渲染前必须 `textContent` 转义（见 §9）。
+- **留言板**（面板，分「查看留言 / 投递便签」两个页签）：查看留言 = 已发布问答墙（调用 `get_published_questions(page, 20)` + `get_published_questions_count()`，分页「加载更多」）；投递便签 = 投递表单（经 `supabase.rpc('submit_question', {...})` 提交）。投递表单字段：**留言内容**（`content`，必填、≤100 字，前端 `maxlength=100` 并显示计数）、**留言人**（`submitter_name`，选填、≤20 字，前端 `maxlength=20`，留空=匿名）、**邮箱**（`submitter_email`，选填，仅后台可见，首版不自动发邮件；前端 `type="email"` 格式校验、后端 check 兜底）、**公开/不公开**（`display_mode`：`public`/`private`，二选一必选，默认公开）；表单含隐藏蜜罐字段 `hp`，并做简单前端频控（短时间重复提交提示稍后再试）。公开问答墙：`public` 题目显示留言人或「匿名」（留言人留空时）与回复内容（已回答显示答案，未回答显示「待回复」占位）；**不显示提问日期与回答日期**；`private` 不显示。访客提交的 `content`、`submitter_name` 与回答 `answer` 均为纯文本，渲染前必须 `textContent` 转义（见 §9）。
 - **唱片机**：经 `postMessage` 触发外壳音乐播放。
 - **门·森林 / 门·图书馆**：鼠标悬停（hover）靠近门显示「开门」，点击经 `postMessage` 通知外壳切房。
 - **像素猫**：`npc.js` 对话与行为（随机转移、待机动作，不跟随、不主动靠近访客）；无引导、无寒暄；监听外壳广播的灯/音乐事件（§5.6）。
-- **生态物件**：窝/书桌等彩蛋或装饰。
+- **生态物件**：窝/电脑桌等；电脑桌点开内置贪吃蛇小游戏（方向键/WASD 移动、空格暂停、撞墙或自撞结束、可重开）。
 - **简介文字**：铺在主房间底部墙内（小门厅凸出部分上方），随开关灯切换（开灯/关灯两版文案，见 §3.3）。
 - 边栏（传送器 + 开关灯 + 音乐）由外壳承载，本页不含。
 
 ### 10.2 `forest.html` + `forest.js`（森林，内容页）
 - 读取 `knowledge_nodes` + `knowledge_edges`，用 Cytoscape 渲染**朴素平面图**（无光效）；布局采用 `cytoscape-fcose`，用 `fixedNodeConstraint` 将 `pinned=true` 的节点固定在其 `x/y` 坐标（0–1 归一化）、不参与自动排布，`pinned=false`（默认）的节点由自动布局决定位置；`size` 作为节点直径（px，默认 30）渲染。**坐标换算基准**：`fixedNodeConstraint` 使用模型坐标，约定以初始未缩放画布宽高为基准，pinned 节点 position =（x×画布宽, y×画布高）；后台拖拽松手时用节点模型坐标除以画布宽高换算回 0–1 写库。**坐标校准注意**：fcose 以画布中心为原点，与 0–1 左上角原点存在偏移，实施时须实测校准；若偏差明显，改为「先对非固定节点跑自动布局，再对 `pinned` 节点用 `node.position()` 直接设定位置」。连线（边）的 `label` 不显示，仅存数据库备用。
-- 交互：拖拽画布（pan）、滚轮缩放（zoom）、点击节点在侧栏展开 `desc`；**公开页禁用节点拖动**，只有后台可拖节点写坐标。
+- 交互：拖拽画布（pan）、滚轮缩放（zoom）、点击节点在侧栏展开简介 `desc`、彩色标签（`tags`，颜色随 `knowledge_tags`）与关联文章（`library_item_id`，可点「前往图书馆查看」）；**节点颜色 = 第一个标签的颜色**（无标签用主题强调色）；**公开页禁用节点拖动**，只有后台可拖节点写坐标。
 - **门·主房间**：与主房间的门一致——悬停（hover）到门旁显示「开门」，点击经 `postMessage` 通知外壳切回主房间。
 - 挂载 `npc.js` 猫组件（体现"恒在"，见 §5）；监听外壳广播的灯/音乐事件（§5.6）。
 - 入口处铺一行**森林**的氛围简介文字（固定单版文案，不分开灯/关灯两版；文字颜色随 `data-light` 主题变化）：`这是森林。摸不到。但走进去，会碰到很多念头。`
@@ -693,6 +703,7 @@ create trigger trg_library_updated_at
 - **门·主房间**：与主房间的门一致——悬停（hover）显示「开门」，点击经 `postMessage` 通知外壳切回主房间。
 - 正文 Markdown 渲染（可插图、可链接）；渲染统一经 `marked` + DOMPurify 净化（见 §9）。
 - 列表视图：标题 + 标签 + 日期（`updated_at`）+ 摘要（取 `summary`，为空时省略摘要项）；点开以**弹层（modal）**查看全文。
+- 详情弹层底部显示**相关节点**（读 `knowledge_nodes` 中 `library_item_id` 等于本文 id 的节点），点击可跳转森林并自动选中该节点（经 `localStorage['cv_open_node']`）。森林侧栏的「前往图书馆查看」反向经 `localStorage['cv_open_item']` 自动打开文章。
 
 ### 10.4 `admin.html` + `admin.js`（后台，无房间设定）
 - 后台不套用房间视觉与开关灯主题，**固定白底黑字的简单样式**，不使用 `data-light` 变量（§6.1 的灯光只作用于三个公开房间）。
@@ -700,7 +711,7 @@ create trigger trg_library_updated_at
 - 已登录：管理面板 tab：
   1. **航行日志**：编辑 `profile`（空间编号/状态/属空间/正文）。
   2. **图书馆**：`library_items` 增删改 + 标签设置 + 摘要（`summary`）编辑。
-  3. **森林**：节点/连线增删改 + 手动摆放节点（拖动画布中的节点，松手后把像素坐标换算为 0–1 归一化写入 `x/y`，并置 `pinned=true`；「取消固定」置 `pinned=false`，坐标忽略、恢复自动布局）。**连线增删**：进入连线模式后，先点击节点 A、再点击节点 B——两点间无线则创建边、有线则删除该边；选中节点高亮并提示下一步。
+  3. **森林**：节点/连线增删改 + 手动摆放节点（拖动画布中的节点，松手后把像素坐标换算为 0–1 归一化写入 `x/y`，并置 `pinned=true`；「取消固定」置 `pinned=false`，坐标忽略、恢复自动布局）。**节点表单**可设名称/简介/标签/关联文章；**标签管理**可增删标签并改颜色（节点同步变色）。**连线增删**：进入连线模式后，先点击节点 A、再点击节点 B——两点间无线则创建边、有线则删除该边；选中节点高亮并提示下一步。
   4. **提问箱**：审核；「发布并回答」/「设为私密」/「拒绝」；可见 `submitter_email`；回答为**纯文本 textarea**（非 Markdown，`maxlength=500` 并显示计数）。
   5. **通讯坐标**：`friend_links` 增删改 + 排序。
 - 登录态：`getSession()` / `onAuthStateChange`；提供登出。
@@ -751,9 +762,11 @@ create trigger trg_library_updated_at
 - [ ] 音乐：播放/切歌正常，切房**自动续播零中断**（外壳常驻）；状态默认播放、刷新后从 `currentTime` 续播，但受浏览器自动播放限制，首次点击后才出声；唱片机收到广播仅同步显示、不回发（无消息回路）；**自动续播/自动切歌不惊扰猫**。
 - [ ] 控制台：航行日志（空间编号/状态/属空间/正文）与通讯坐标正常展示。
 - [ ] 留言板：已发布问答分页展示（每页 20 条，**不显示提问/回答日期**）；经 `submit_question()` 投递成功且状态 `pending`；蜜罐字段、前端频控与服务端限流生效；访客内容渲染已转义（无 XSS）。
-- [ ] 森林：朴素平面图，画布平移/缩放/点击展开正常、**公开页节点不可拖动**；`pinned` 节点锁定在手动坐标（0–1 归一化，fcose `fixedNodeConstraint`）；猫组件在场、简介词固定且颜色随主题。
-- [ ] 图书馆：`updated_at` 倒序、分页（每页 20 条）、标签检索、Markdown 渲染（含插图，经 DOMPurify 净化）、摘要展示（`summary`）正常；猫组件在场、简介词固定且颜色随主题。
+- [ ] 森林：朴素平面图，画布平移/缩放/点击展开正常、**公开页节点不可拖动**；`pinned` 节点锁定在手动坐标（0–1 归一化，fcose `fixedNodeConstraint`）；节点颜色随标签颜色、侧栏显示简介/标签/关联文章并可跳转图书馆；猫组件在场、简介词固定且颜色随主题。
+- [ ] 图书馆：`updated_at` 倒序、分页（每页 20 条）、标签检索、Markdown 渲染（含插图与代码块，经 DOMPurify 净化）、摘要展示（`summary`）正常；详情显示相关节点并可跳转森林；猫组件在场、简介词固定且颜色随主题。
 - [ ] 后台：五个 tab 全流程可用，白底黑字不随灯光；**插图上传到 Storage `images` 成功、公开页正常显示**。
+- [ ] 留言板分「查看留言 / 投递便签」两个页签，投递成功后回到查看页并刷新。
+- [ ] 电脑桌可打开贪吃蛇小游戏（方向键/WASD 移动、空格暂停、撞墙/自撞结束、可重开）。
 - [ ] 未登录对内容表写操作被 RLS 拒绝；提交提问成功。
 - [ ] GitHub Pages 可访问，控制台无 Supabase/CORS 报错；第三方库（supabase-js/cytoscape/fcose/marked/DOMPurify）全局 `<script>` 加载正常、无加载错误。
 - [ ] 全仓库无 `service_role`、无硬编码密码/密匙；公开页不渲染邮箱与 `private` 提问。

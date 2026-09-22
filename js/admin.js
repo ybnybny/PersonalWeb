@@ -8,8 +8,11 @@ import { el } from './ui.js';
 const $ = (id) => document.getElementById(id);
 
 function md(text) {
-  const html = window.marked.parse(text || '');
-  return window.DOMPurify.sanitize(html);
+  const marked = window.marked;
+  const raw = (marked && marked.parse)
+    ? marked.parse(text || '')
+    : String(text || '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+  return (window.DOMPurify && window.DOMPurify.sanitize) ? window.DOMPurify.sanitize(raw) : raw;
 }
 
 function fmtDate(iso) {
@@ -203,6 +206,8 @@ function libraryForm(content, item = null) {
 let forestCy = null;
 let edgeMode = false;
 let edgeFirst = null;
+let adminTags = [];
+let adminLibs = [];
 
 async function renderForest(content) {
   content.innerHTML = '';
@@ -212,27 +217,38 @@ async function renderForest(content) {
     el('button', { onclick: () => forestDeleteNode(content) }, '删除选中'),
     el('button', { onclick: () => forestUnpinNode(content) }, '取消固定'),
     el('button', { id: 'edge-mode-btn', onclick: () => toggleEdgeMode() }, '连线模式：关'),
+    el('button', { onclick: () => forestTagManage(content) }, '标签管理'),
   );
   const cyEl = el('div', { id: 'admin-cy', style: 'width:100%;height:480px;border:1px solid #d5d0c8' });
   content.append(toolbar, cyEl);
 
-  const [nodesRes, edgesRes] = await Promise.all([
+  const [nodesRes, edgesRes, tagsRes, libsRes] = await Promise.all([
     supabase.from('knowledge_nodes').select('*'),
     supabase.from('knowledge_edges').select('*'),
+    supabase.from('knowledge_tags').select('*'),
+    supabase.from('library_items').select('id, title'),
   ]);
   if (nodesRes.error || edgesRes.error) { content.appendChild(el('div', {}, '加载失败')); return; }
 
   const nodes = nodesRes.data || [];
   const edges = edgesRes.data || [];
+  adminTags = tagsRes.data || [];
+  adminLibs = libsRes.data || [];
+
+  const colorOf = (tags) => {
+    if (!tags || !tags.length) return '#005f5f';
+    const t = adminTags.find((x) => x.name === tags[0]);
+    return t ? t.color : '#005f5f';
+  };
 
   forestCy = window.cytoscape({
     container: cyEl,
     elements: [
-      ...nodes.map((n) => ({ group: 'nodes', data: { id: n.id, label: n.label, desc: n.desc, size: n.size || 30, pinned: n.pinned, x: n.x, y: n.y } })),
+      ...nodes.map((n) => ({ group: 'nodes', data: { id: n.id, label: n.label, desc: n.desc, tags: n.tags || [], library_item_id: n.library_item_id || null, size: n.size || 30, pinned: n.pinned, x: n.x, y: n.y } })),
       ...edges.map((e) => ({ group: 'edges', data: { id: e.id, source: e.source, target: e.target } })),
     ],
     style: [
-      { selector: 'node', style: { 'background-color': '#005f5f', 'color': '#1a1a1a', 'label': 'data(label)', 'width': 'data(size)', 'height': 'data(size)', 'font-size': 12, 'text-valign': 'center', 'text-halign': 'center' } },
+      { selector: 'node', style: { 'background-color': (ele) => colorOf(ele.data('tags')), 'color': '#1a1a1a', 'label': 'data(label)', 'width': 'data(size)', 'height': 'data(size)', 'font-size': 12, 'text-valign': 'center', 'text-halign': 'center' } },
       { selector: 'node:selected', style: { 'border-width': 3, 'border-color': '#b3261e' } },
       { selector: 'edge', style: { 'line-color': '#d5d0c8', 'width': 1.5, 'curve-style': 'haystack' } },
     ],
@@ -294,22 +310,85 @@ function toggleEdgeMode() {
   $('edge-mode-btn').textContent = `连线模式：${edgeMode ? '开' : '关'}`;
 }
 
+function forestNodeForm(content, node = null) {
+  content.innerHTML = '';
+  const label = el('input', { value: node ? node.data('label') : '', style: 'width:100%' });
+  const desc = el('input', { value: node ? (node.data('desc') || '') : '', style: 'width:100%' });
+  const tags = el('input', { value: node ? (node.data('tags') || []).join(', ') : '', placeholder: '标签用逗号分隔，颜色在「标签管理」里设置', style: 'width:100%' });
+  const libSel = el('select', { style: 'width:100%' });
+  libSel.appendChild(el('option', { value: '' }, '（不关联）'));
+  adminLibs.forEach((l) => {
+    const opt = el('option', { value: l.id }, l.title);
+    if (node && node.data('library_item_id') === l.id) opt.selected = true;
+    libSel.appendChild(opt);
+  });
+
+  const save = el('button', {
+    onclick: async () => {
+      const tagArr = tags.value.split(/[,，、\s]+/).map((t) => t.trim()).filter(Boolean);
+      const payload = { label: label.value, desc: desc.value, tags: tagArr, library_item_id: libSel.value || null };
+      const { error } = node
+        ? await supabase.from('knowledge_nodes').update(payload).eq('id', node.id())
+        : await supabase.from('knowledge_nodes').insert({ ...payload, x: 0.5, y: 0.5, pinned: false, size: 30 });
+      alert(error ? '保存失败' : '已保存');
+      renderForest(content);
+    },
+  }, '保存');
+  const cancel = el('button', { onclick: () => renderForest(content) }, '取消');
+  content.append(
+    field('节点名称', label),
+    field('简介', desc),
+    field('标签', tags),
+    field('关联图书馆文章', libSel),
+    el('div', { style: 'margin-top:10px' }, save, el('span', { style: 'display:inline-block;width:8px' }), cancel),
+  );
+}
+
 async function forestAddNode(content) {
-  const label = prompt('节点名称');
-  if (!label) return;
-  await supabase.from('knowledge_nodes').insert({ label, desc: '', x: 0.5, y: 0.5, pinned: false, size: 30 });
-  renderForest(content);
+  forestNodeForm(content);
 }
 
 async function forestEditNode(content) {
   const sel = forestCy.$('node:selected');
   if (!sel.length) { alert('请先点击选中一个节点'); return; }
-  const n = sel[0];
-  const label = prompt('节点名称', n.data('label'));
-  if (label == null) return;
-  const desc = prompt('描述', n.data('desc')) || '';
-  await supabase.from('knowledge_nodes').update({ label, desc }).eq('id', n.id());
-  renderForest(content);
+  forestNodeForm(content, sel[0]);
+}
+
+function forestTagManage(content) {
+  content.innerHTML = '';
+  const list = el('div', { style: 'margin-bottom:12px' });
+  adminTags.forEach((t) => {
+    const colorInput = el('input', { type: 'color', value: t.color, style: 'width:52px;padding:0;border:none' });
+    colorInput.addEventListener('change', async () => {
+      const { error } = await supabase.from('knowledge_tags').update({ color: colorInput.value }).eq('name', t.name);
+      if (!error) renderForest(content);
+      else alert('保存失败');
+    });
+    list.appendChild(el('div', { style: 'display:flex;align-items:center;gap:10px;margin-bottom:6px' },
+      el('b', {}, t.name),
+      colorInput,
+      el('button', { onclick: async () => { if (confirm(`删除标签「${t.name}」？`)) { await supabase.from('knowledge_tags').delete().eq('name', t.name); renderForest(content); } } }, '删除'),
+    ));
+  });
+
+  const newName = el('input', { placeholder: '新标签名', style: 'width:140px' });
+  const newColor = el('input', { type: 'color', value: '#005f5f', style: 'width:52px;padding:0;border:none' });
+  const addBtn = el('button', {
+    onclick: async () => {
+      const name = newName.value.trim();
+      if (!name) { alert('请填标签名'); return; }
+      const { error } = await supabase.from('knowledge_tags').upsert({ name, color: newColor.value });
+      if (error) alert('保存失败');
+      renderForest(content);
+    },
+  }, '添加');
+
+  content.append(
+    el('h3', { style: 'font-size:14px' }, '标签管理（改颜色后节点会同步变色）'),
+    list,
+    el('div', { style: 'display:flex;gap:8px;align-items:center' }, newName, newColor, addBtn),
+    el('div', { style: 'margin-top:12px' }, el('button', { onclick: () => renderForest(content) }, '返回森林')),
+  );
 }
 
 async function forestDeleteNode(content) {

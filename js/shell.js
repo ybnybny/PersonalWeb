@@ -22,6 +22,7 @@ const mobileBlock = document.getElementById('mobile-block');
 
 let currentRoom = 'home';
 let bgm = getBgm();
+let audioMissing = false;
 
 // ---------- 路由 ----------
 
@@ -123,6 +124,7 @@ function handleMusicCommand(action, startle) {
   if (action === 'toggle') action = audio.paused ? 'play' : 'pause';
   switch (action) {
     case 'play':
+      if (!audio.src) loadTrack();
       if (audio.paused) {
         audio.play().catch(() => {});
         bgm.on = true;
@@ -165,10 +167,16 @@ audio.addEventListener('ended', () => {
 
 audio.addEventListener('play', () => { bgm.on = true; renderMusic(); });
 audio.addEventListener('pause', () => { renderMusic(); });
+audio.addEventListener('error', () => {
+  if (!audioMissing) {
+    audioMissing = true;
+    musicTrack.textContent = '音乐文件未找到：请放入 assets/audio/bgm-1.mp3、bgm-2.mp3';
+  }
+});
 
 function saveBgm() {
   bgm.currentTime = (audio.currentTime || 0);
-  bgm.on = !audio.paused;
+  // 注意：bgm.on 表示"意图"，只由用户手势的播放/暂停修改，不由自动播放拦截改写
   setBgm(bgm);
 }
 

@@ -43,11 +43,23 @@ create table if not exists public.knowledge_nodes (
   id uuid primary key default gen_random_uuid(),
   label text not null,
   "desc" text not null default '',
+  tags text[] not null default '{}',      -- 标签（标签名数组，颜色见 knowledge_tags）
+  library_item_id uuid references public.library_items(id) on delete set null,  -- 关联图书馆文章（可空）
   x float not null default 0 check (x between 0 and 1),  -- 归一化坐标 0–1（相对画布宽高，原点左上角）
   y float not null default 0 check (y between 0 and 1),
   pinned boolean not null default false,  -- true=使用手动坐标，公开页锁定位置
   size int not null default 30            -- 节点直径（px，默认 30），渲染时作为节点宽高
 );
+
+-- 森林：节点标签（标签名 → 颜色）
+create table if not exists public.knowledge_tags (
+  name text primary key,
+  color text not null default '#005f5f'
+);
+
+-- 增量升级：旧库补列（新库无副作用；必须放在种子数据之前）
+alter table public.knowledge_nodes add column if not exists tags text[] not null default '{}';
+alter table public.knowledge_nodes add column if not exists library_item_id uuid references public.library_items(id) on delete set null;
 
 -- 森林：连线
 create table if not exists public.knowledge_edges (
@@ -94,6 +106,7 @@ alter table public.profile         enable row level security;
 alter table public.library_items   enable row level security;
 alter table public.knowledge_nodes enable row level security;
 alter table public.knowledge_edges enable row level security;
+alter table public.knowledge_tags  enable row level security;
 alter table public.questions       enable row level security;
 alter table public.friend_links    enable row level security;
 
@@ -126,6 +139,9 @@ create policy "public read edges" on public.knowledge_edges
   for select using (true);
 drop policy if exists "public read friend_links" on public.friend_links;
 create policy "public read friend_links" on public.friend_links
+  for select using (true);
+drop policy if exists "public read tags" on public.knowledge_tags;
+create policy "public read tags" on public.knowledge_tags
   for select using (true);
 
 -- ---------------------------------------------------------------------
@@ -247,6 +263,9 @@ create policy "admin all edges" on public.knowledge_edges
 drop policy if exists "admin all friend_links" on public.friend_links;
 create policy "admin all friend_links" on public.friend_links
   for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "admin all tags" on public.knowledge_tags;
+create policy "admin all tags" on public.knowledge_tags
+  for all using (public.is_admin()) with check (public.is_admin());
 
 -- 仅管理员可写：提问箱审核/回答/隐藏（更新）
 drop policy if exists "admin update questions" on public.questions;
@@ -301,7 +320,7 @@ values (
   'ybnybny (YBN)',
   '计算机类大一生',
   '北京科技大学（USTB）',
-  '## 航行日志\n\n这里是小屋的航行日志。\n\n记录一些正在做的事、学的东西。\n\n> 正文在后台「航行日志」页编辑。'
+  E'## 航行日志\n\n这里是小屋的航行日志。\n\n记录一些正在做的事、学的东西。\n\n> 正文在后台「航行日志」页编辑。'
 )
 on conflict (id) do nothing;
 
@@ -312,33 +331,41 @@ values
     '00000000-0000-4000-8000-000000000101',
     '示例作品：第一个网页',
     '用原生 HTML/CSS/JS 搭的一个小页面。',
-    '## 第一个网页\n\n这是一个 **示例作品**。\n\n- 学了标签\n- 学了样式\n- 学了交互\n\n![示例图](https://example.com/example.png)',
+    E'## 第一个网页\n\n这是一个 **示例作品**。\n\n- 学了标签\n- 学了样式\n- 学了交互',
     array['作品']
   ),
   (
     '00000000-0000-4000-8000-000000000102',
     '示例笔记：Markdown 入门',
     '关于 Markdown 语法的简单笔记。',
-    '## Markdown 入门\n\n### 标题\n\n`#` 表示标题。\n\n### 列表\n\n- 无序列表\n- 第二项\n',
+    E'## Markdown 入门\n\n### 标题\n\n`#` 表示标题。\n\n### 代码块\n\n用三个反引号包住代码：\n\n```js\nconsole.log("hello");\n```\n\n### 列表\n\n- 无序列表\n- 第二项',
     array['笔记']
   ),
   (
     '00000000-0000-4000-8000-000000000103',
     '示例笔记：像素画练习',
     '用 CSS box-shadow 画小像素图的记录。',
-    '## 像素画练习\n\n用 `box-shadow` 一格一格画。',
+    E'## 像素画练习\n\n用 `box-shadow` 一格一格画。',
     array['笔记']
   )
 on conflict (id) do nothing;
 
--- 森林示例节点
-insert into public.knowledge_nodes (id, label, "desc", x, y, pinned, size)
+-- 森林标签颜色
+insert into public.knowledge_tags (name, color)
 values
-  ('00000000-0000-4000-8000-000000000201', '数据结构', '森林借用「数据结构」概念。', 0.5, 0.4, true, 44),
-  ('00000000-0000-4000-8000-000000000202', '图', '节点与边的抽象结构。', 0.32, 0.6, true, 34),
-  ('00000000-0000-4000-8000-000000000203', '树', '没有环的连通图。', 0.68, 0.6, true, 34),
-  ('00000000-0000-4000-8000-000000000204', '前端', 'HTML / CSS / JavaScript。', 0.35, 0.25, false, 30),
-  ('00000000-0000-4000-8000-000000000205', 'Supabase', 'Postgres + Auth + RLS。', 0.65, 0.25, false, 30)
+  ('课程', '#e07b39'),
+  ('兴趣', '#6a5acd'),
+  ('工具', '#2e8b57')
+on conflict (name) do nothing;
+
+-- 森林示例节点（tags 存标签名；颜色在 knowledge_tags）
+insert into public.knowledge_nodes (id, label, "desc", tags, library_item_id, x, y, pinned, size)
+values
+  ('00000000-0000-4000-8000-000000000201', '数据结构', '森林借用「数据结构」概念。', array['课程'], null, 0.5, 0.4, true, 44),
+  ('00000000-0000-4000-8000-000000000202', '图', '节点与边的抽象结构。', array['课程'], null, 0.32, 0.6, true, 34),
+  ('00000000-0000-4000-8000-000000000203', '树', '没有环的连通图。', array['课程'], null, 0.68, 0.6, true, 34),
+  ('00000000-0000-4000-8000-000000000204', '前端', 'HTML / CSS / JavaScript。', array['兴趣'], '00000000-0000-4000-8000-000000000101', 0.35, 0.25, false, 30),
+  ('00000000-0000-4000-8000-000000000205', 'Supabase', 'Postgres + Auth + RLS。', array['工具'], null, 0.65, 0.25, false, 30)
 on conflict (id) do nothing;
 
 -- 森林示例连线
@@ -354,3 +381,7 @@ insert into public.friend_links (id, name, url, "desc", sort_order)
 values
   ('00000000-0000-4000-8000-000000000401', '示例友链', 'https://example.com', '替换为真实友链。', 0)
 on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------
+-- 12. 说明：增量升级语句已上移至第 1 节（建表之后、种子数据之前）
+-- ---------------------------------------------------------------------
