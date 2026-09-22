@@ -89,6 +89,8 @@ window.addEventListener('message', (e) => {
     setRoom(msg.room); // 门切房（传送器在边栏内直接切房）
   } else if (msg.type === 'music' && msg.action) {
     handleMusicCommand(msg.action, true); // 唱片机指令视为用户手势 → 惊扰猫
+  } else if (msg.type === 'interact') {
+    tryUnlockMusic(); // 内容页内的首次手势 → 尝试解锁音乐
   }
 });
 
@@ -112,6 +114,13 @@ lightToggle.addEventListener('click', () => {
 function loadTrack() {
   audio.src = TRACKS[bgm.trackIndex % TRACKS.length];
   audio.currentTime = bgm.currentTime || 0;
+}
+
+function tryUnlockMusic() {
+  if (bgm.on && audio.paused) {
+    if (!audio.src) loadTrack();
+    audio.play().catch(() => {});
+  }
 }
 
 function renderMusic() {
@@ -195,11 +204,8 @@ function init() {
   setRoom(roomFromUrl(), { push: false });
 
   // 首次用户手势后尝试出声（自动播放策略）
-  const unlock = () => {
-    if (bgm.on && audio.paused) audio.play().catch(() => {});
-  };
-  window.addEventListener('pointerdown', unlock, { once: true });
-  window.addEventListener('keydown', unlock, { once: true });
+  window.addEventListener('pointerdown', tryUnlockMusic, { once: true });
+  window.addEventListener('keydown', tryUnlockMusic, { once: true });
 }
 
 init();

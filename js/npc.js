@@ -81,6 +81,13 @@ export class Npc {
     document.body.appendChild(this.dialogPanel);
 
     window.addEventListener('message', (e) => this.onMessage(e));
+
+    // 首次用户手势通知外壳（用于解锁浏览器自动播放限制）
+    const unlockOnce = () => {
+      window.parent.postMessage({ type: 'interact' }, location.origin);
+    };
+    window.addEventListener('pointerdown', unlockOnce, { once: true });
+    window.addEventListener('keydown', unlockOnce, { once: true });
   }
 
   // ---------- 渲染 ----------

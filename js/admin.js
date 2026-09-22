@@ -313,7 +313,8 @@ function toggleEdgeMode() {
 function forestNodeForm(content, node = null) {
   content.innerHTML = '';
   const label = el('input', { value: node ? node.data('label') : '', style: 'width:100%' });
-  const desc = el('input', { value: node ? (node.data('desc') || '') : '', style: 'width:100%' });
+  const desc = el('textarea', { rows: '3', style: 'width:100%' });
+  desc.value = node ? (node.data('desc') || '') : '';
   const tags = el('input', { value: node ? (node.data('tags') || []).join(', ') : '', placeholder: '标签用逗号分隔，颜色在「标签管理」里设置', style: 'width:100%' });
   const libSel = el('select', { style: 'width:100%' });
   libSel.appendChild(el('option', { value: '' }, '（不关联）'));

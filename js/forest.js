@@ -13,6 +13,14 @@ function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
+function md(text) {
+  const marked = window.marked;
+  const raw = (marked && marked.parse)
+    ? marked.parse(text || '')
+    : String(text || '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+  return (window.DOMPurify && window.DOMPurify.sanitize) ? window.DOMPurify.sanitize(raw) : raw;
+}
+
 function applyLight(value) {
   document.documentElement.dataset.light = value;
 }
@@ -32,28 +40,32 @@ let tagColorMap = {};
 let libraryMap = {};
 
 function showNode(node) {
-  const d = node.data();
-  $('node-label').textContent = d.label || '';
-  $('node-desc').textContent = d.desc || '';
+  try {
+    const d = node.data();
+    $('node-label').textContent = d.label || '';
+    $('node-desc').innerHTML = md(d.desc || '');
 
-  const tagsWrap = $('node-tags');
-  tagsWrap.innerHTML = '';
-  (d.tags || []).forEach((t) => {
-    const color = tagColorMap[t];
-    tagsWrap.appendChild(el('span', { class: 'tag-chip', style: color ? `background:${color}` : '' }, t));
-  });
+    const tagsWrap = $('node-tags');
+    tagsWrap.innerHTML = '';
+    (d.tags || []).forEach((t) => {
+      const color = tagColorMap[t];
+      tagsWrap.appendChild(el('span', { class: 'tag-chip', style: color ? `background:${color}` : '' }, t));
+    });
 
-  const linkWrap = $('node-link');
-  linkWrap.innerHTML = '';
-  if (d.library_item_id && libraryMap[d.library_item_id]) {
-    linkWrap.appendChild(el('div', { style: 'border-top:1px dashed var(--border);padding-top:8px;' },
-      el('div', { style: 'font-size:12px;color:var(--muted)' }, '相关文章'),
-      el('div', { style: 'margin:4px 0' }, libraryMap[d.library_item_id]),
-      el('button', { onclick: () => openLibraryItem(d.library_item_id) }, '前往图书馆查看'),
-    ));
+    const linkWrap = $('node-link');
+    linkWrap.innerHTML = '';
+    if (d.library_item_id && libraryMap[d.library_item_id]) {
+      linkWrap.appendChild(el('div', { style: 'border-top:1px dashed var(--border);padding-top:8px;' },
+        el('div', { style: 'font-size:12px;color:var(--muted)' }, '相关文章'),
+        el('div', { style: 'margin:4px 0' }, libraryMap[d.library_item_id]),
+        el('button', { onclick: () => openLibraryItem(d.library_item_id) }, '前往图书馆查看'),
+      ));
+    }
+
+    $('forest-side').classList.add('show');
+  } catch (err) {
+    console.error('showNode 失败：', err);
   }
-
-  $('forest-side').classList.add('show');
 }
 
 function openLibraryItem(itemId) {
@@ -182,7 +194,8 @@ async function loadForest() {
         cy.animate({ fit: { eles: node, padding: 120 }, duration: 300 });
       }
     }
-  } catch {
+  } catch (err) {
+    console.error('loadForest 失败：', err);
     toastLoadError(loadForest);
   }
 }
