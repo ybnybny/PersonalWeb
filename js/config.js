@@ -7,5 +7,5 @@
 // 注意：绝不要把 service_role key 放进来。
 // =====================================================================
 
-export const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
-export const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';
+export const SUPABASE_URL = 'https://zhmpbrkyugxhrvpqpibl.supabase.co/';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpobXBicmt5dWd4aHJ2cHFwaWJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNDI2NDcsImV4cCI6MjEwNTYxODY0N30.mAnuFd9OMLKYBo87pZpfuqAZesCvnILFJWfv7uPNNjU';

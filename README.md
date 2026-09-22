@@ -26,6 +26,11 @@
    ```
 
 7. 打开 **Authentication → URL Configuration**：Site URL 设为最终网址（如 `https://<用户名>.github.io/<仓库名>/`），并在 **Redirect URLs** 白名单里加入该网址；本地预览地址（如 `http://127.0.0.1:5500/`）也一并加入。
+8. 配置插图存储（Storage，后台「插入图片」要用）：
+   1. 左侧 **Storage** → **New bucket** → 名称填 `images` → 打开 **Public bucket** 开关 → 创建。
+   2. 进入 **Storage → Policies**，找到 `images` 桶 → 点 **New policy** → 选 **Create a policy from scratch**。
+   3. 按下面填：Policy name 填 `admin write images`；Allowed operation 勾 **INSERT / UPDATE / DELETE**；Target roles 选 **authenticated**；USING 与 WITH CHECK 都填 `bucket_id = 'images'`。
+   4. 保存。（公开读取由「Public bucket」直接提供，无需再建读策略。）
 
 ### 3. 填写配置
 
@@ -86,7 +91,7 @@ library.html    图书馆（Markdown 档案馆）
 admin.html      后台（独立页）
 css/style.css   全局样式（开灯/关灯两套主题）
 js/             shell / npc / home / forest / library / admin 等脚本
-sql/schema.sql  建表 + RLS + 种子数据 + Storage 配置
+sql/schema.sql  建表 + RLS + 种子数据（Storage 在 Dashboard 手动配置）
 assets/audio/   背景音乐
 docs/PROJECT_SPEC.md   项目规格（唯一权威说明书）
 ```

@@ -42,7 +42,7 @@ create table if not exists public.library_items (
 create table if not exists public.knowledge_nodes (
   id uuid primary key default gen_random_uuid(),
   label text not null,
-  desc text not null default '',
+  "desc" text not null default '',
   x float not null default 0 check (x between 0 and 1),  -- 归一化坐标 0–1（相对画布宽高，原点左上角）
   y float not null default 0 check (y between 0 and 1),
   pinned boolean not null default false,  -- true=使用手动坐标，公开页锁定位置
@@ -79,7 +79,7 @@ create table if not exists public.friend_links (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   url text not null,
-  desc text not null default '',
+  "desc" text not null default '',
   avatar_url text,
   sort_order int not null default 0,
   created_at timestamptz not null default now()
@@ -282,30 +282,13 @@ create trigger trg_library_updated_at
 
 -- ---------------------------------------------------------------------
 -- 10. 插图存储：public bucket images
+-- 说明：storage.objects 属 supabase_storage_admin 所有，SQL Editor 无权对其建策略
+-- （直接执行会报 "must be owner of table objects"）。请在 Supabase Dashboard 的
+-- Storage 页面手动完成（见 README「2. 创建 Supabase 项目」第 8 步）：
+--   1) 新建 public bucket，名为 images；
+--   2) 为该 bucket 建策略：允许 authenticated 角色 INSERT/UPDATE/DELETE
+--      （USING 与 WITH CHECK 均填 bucket_id = 'images'）。
 -- ---------------------------------------------------------------------
-
-insert into storage.buckets (id, name, public)
-values ('images', 'images', true)
-on conflict (id) do nothing;
-
-alter table storage.objects enable row level security;
-
-drop policy if exists "public read images" on storage.objects;
-create policy "public read images" on storage.objects
-  for select using (bucket_id = 'images');
-
-drop policy if exists "admin insert images" on storage.objects;
-create policy "admin insert images" on storage.objects
-  for insert with check (bucket_id = 'images' and public.is_admin());
-
-drop policy if exists "admin update images" on storage.objects;
-create policy "admin update images" on storage.objects
-  for update using (bucket_id = 'images' and public.is_admin())
-  with check (bucket_id = 'images' and public.is_admin());
-
-drop policy if exists "admin delete images" on storage.objects;
-create policy "admin delete images" on storage.objects
-  for delete using (bucket_id = 'images' and public.is_admin());
 
 -- ---------------------------------------------------------------------
 -- 11. 种子数据（可选，可重复执行：固定 id / on conflict do nothing）
@@ -349,7 +332,7 @@ values
 on conflict (id) do nothing;
 
 -- 森林示例节点
-insert into public.knowledge_nodes (id, label, desc, x, y, pinned, size)
+insert into public.knowledge_nodes (id, label, "desc", x, y, pinned, size)
 values
   ('00000000-0000-4000-8000-000000000201', '数据结构', '森林借用「数据结构」概念。', 0.5, 0.4, true, 44),
   ('00000000-0000-4000-8000-000000000202', '图', '节点与边的抽象结构。', 0.32, 0.6, true, 34),
@@ -367,7 +350,7 @@ values
 on conflict (id) do nothing;
 
 -- 友链占位
-insert into public.friend_links (id, name, url, desc, sort_order)
+insert into public.friend_links (id, name, url, "desc", sort_order)
 values
   ('00000000-0000-4000-8000-000000000401', '示例友链', 'https://example.com', '替换为真实友链。', 0)
 on conflict (id) do nothing;
