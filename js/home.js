@@ -6,8 +6,19 @@ import { getLight, getBgm } from './settings.js';
 import { el, setText, toast, toastLoadError } from './ui.js';
 import { Npc } from './npc.js';
 import { mountSnake } from './snake.js';
+import { ROOM_ART } from './ascii.js';
 
 const $ = (id) => document.getElementById(id);
+
+// 渲染主房间物件字符画（按最长行补空格保证对齐）
+function renderArt() {
+  document.querySelectorAll('.ascii-art[data-art]').forEach((pre) => {
+    const lines = ROOM_ART[pre.dataset.art] || [];
+    if (!lines.length) return;
+    const max = Math.max(...lines.map((l) => l.length));
+    pre.textContent = lines.map((l) => l.padEnd(max)).join('\n');
+  });
+}
 
 // ---------- 开关灯 ----------
 
@@ -248,6 +259,7 @@ async function onSubmit() {
 
 applyLight(getLight());
 updateRecordPlayer();
+renderArt();
 
 const npc = new Npc($('room'));
 npc.startIdle();

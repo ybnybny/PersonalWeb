@@ -15,47 +15,68 @@
 
     <div class="room" id="room">
       <!-- 飞船控制台：上方靠墙正中 -->
-      <div class="object hoverable" id="console" style="left:40%; top:5%;">
-        🖥 飞船控制台
+      <div class="object hoverable" id="console" style="left:50%; top:2%; transform:translateX(-50%);">
+        <pre class="ascii-art" data-art="console"></pre>
+        <div class="object-label">飞船控制台</div>
         <div class="object-tooltip">航行日志 · 通讯坐标</div>
       </div>
 
       <!-- 门·森林（左墙） -->
-      <div class="object hoverable door" id="door-forest" style="left:3%; top:32%;">
-        🚪 门·森林 <button class="door-btn">开门</button>
+      <div class="object hoverable door" id="door-forest" style="left:2%; top:28%;">
+        <pre class="ascii-art" data-art="door"></pre>
+        <div class="object-label">门·森林</div>
+        <button class="door-btn">开门</button>
         <div class="object-tooltip">通往森林</div>
       </div>
 
       <!-- 门·图书馆（右墙） -->
-      <div class="object hoverable door" id="door-library" style="left:84%; top:32%;">
-        🚪 门·图书馆 <button class="door-btn">开门</button>
+      <div class="object hoverable door" id="door-library" style="left:87%; top:28%;">
+        <pre class="ascii-art" data-art="door"></pre>
+        <div class="object-label">门·图书馆</div>
+        <button class="door-btn">开门</button>
         <div class="object-tooltip">通往图书馆</div>
       </div>
 
+      <!-- 储物柜（左墙中部，长边贴墙，暂不交互） -->
+      <div class="object" id="cabinet" style="left:2%; top:46%;">
+        <pre class="ascii-art" data-art="cabinet"></pre>
+        <div class="object-label">储物柜</div>
+      </div>
+
       <!-- 唱片机（左墙靠下） -->
-      <div class="object hoverable" id="record-player" style="left:9%; top:68%;">
-        📻 唱片机
+      <div class="object hoverable" id="record-player" style="left:3%; top:70%;">
+        <pre class="ascii-art" data-art="recordPlayer"></pre>
+        <div class="object-label">唱片机</div>
         <div class="object-tooltip">音乐</div>
       </div>
 
       <!-- 留言板（右墙靠下） -->
-      <div class="object hoverable" id="message-board" style="left:76%; top:68%;">
-        📋 留言板
+      <div class="object hoverable" id="message-board" style="left:80%; top:70%;">
+        <pre class="ascii-art" data-art="messageBoard"></pre>
+        <div class="object-label">留言板</div>
         <div class="object-tooltip">提问箱</div>
       </div>
 
-      <!-- 生态物件 -->
-      <div class="object" id="nest" style="left:23%; top:58%;">窝</div>
-      <div class="object hoverable" id="desk" style="left:63%; top:44%;">🖥 电脑桌
+      <!-- 窝（中左） -->
+      <div class="object" id="nest" style="left:24%; top:54%;">
+        <pre class="ascii-art" data-art="nest"></pre>
+        <div class="object-label">窝</div>
+      </div>
+
+      <!-- 电脑桌（中右，可玩贪吃蛇） -->
+      <div class="object hoverable" id="desk" style="left:58%; top:44%;">
+        <pre class="ascii-art" data-art="desk"></pre>
+        <div class="object-label">电脑桌</div>
         <div class="object-tooltip">可以玩电脑（贪吃蛇）</div>
       </div>
 
       <!-- 简介文字（底部墙内） -->
-      <div id="room-intro" style="position:absolute; left:50%; transform:translateX(-50%); bottom:40px; width:92%; text-align:center; color:var(--muted); font-size:13px;"></div>
+      <div id="room-intro" style="position:absolute; left:50%; transform:translateX(-50%); bottom:30px; width:92%; text-align:center; color:var(--muted); font-size:13px;"></div>
 
       <!-- 小门厅（凸出部分，无入口） -->
-      <div class="object" id="hall" style="left:41%; bottom:-30px; width:18%; text-align:center; background:var(--bg);">
-        小门厅<br />无入口，凭空出现
+      <div class="object" id="hall" style="left:50%; bottom:-25px; transform:translateX(-50%);">
+        <pre class="ascii-art" data-art="hall"></pre>
+        <div class="object-label">小门厅 · 无入口，凭空出现</div>
       </div>
     </div>
   </div>
